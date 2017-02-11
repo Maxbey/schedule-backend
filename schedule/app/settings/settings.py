@@ -24,3 +24,7 @@ class Production(BaseSettings):
     ALLOWED_HOSTS = ['*']
 
     CORS_ORIGIN_ALLOW_ALL = True
+
+class Develop(BaseSettings):
+    DEBUG = True
+    SECRET_KEY = 'secret'
