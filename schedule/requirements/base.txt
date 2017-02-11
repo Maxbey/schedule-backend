@@ -1,0 +1,15 @@
+Django
+djangorestframework
+django-cors-headers
+gunicorn
+psycopg2
+dj-database-url
+dj-static
+django-appconf
+static3
+wsgiref
+django_redis
+django_cache_url
+django-configurations
+django-rest-auth
+celery[redis]
