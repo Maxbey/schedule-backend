@@ -1,9 +1,9 @@
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase, APIClient
 
-from ..models import Specialty, Troop, Discipline, Theme
+from ..models import Specialty, Troop, Discipline, Theme, Teacher
 from ..factories import UserFactory, SpecialtyFactory, TroopFactory, \
-    DisciplineFactory, ThemeFactory
+    DisciplineFactory, ThemeFactory, TeacherFactory
 
 
 class ScheduleApiTestMixin(object):
@@ -85,7 +85,16 @@ class ScheduleApiTestMixin(object):
             'audiences_count': theme.audiences_count,
             'teachers_count': theme.teachers_count,
             'discipline': theme.discipline.id,
-            'previous_themes': self.get_ids(theme.previous_themes.all())
+            'previous_themes': self.get_ids(theme.previous_themes.all()),
+            'teachers': self.get_ids(theme.teachers.all())
+        }
+
+    def serialize_teacher(self, teacher):
+        return {
+            'id': teacher.id,
+            'name': teacher.name,
+            'military_rank': teacher.military_rank,
+            'work_hours_limit': teacher.work_hours_limit
         }
 
 
@@ -315,12 +324,16 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
 
     def setUp(self):
         self.admin = UserFactory(is_staff=True)
+
         self.themes = ThemeFactory.create_batch(2)
         self.prev_themes = ThemeFactory.create_batch(2)
 
     def test_get_list(self):
+        teachers = TeacherFactory.create_batch(2)
+
         for theme in self.themes:
             theme.previous_themes.set(self.prev_themes)
+            theme.teachers.set(teachers)
 
         response = self.authorize_client(self.admin).get(self.url)
 
@@ -355,6 +368,7 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
 
     def test_creation(self):
         discipline = DisciplineFactory()
+        teachers = TeacherFactory.create_batch(2)
 
         count_before = Theme.objects.count()
         payload = {
@@ -366,7 +380,8 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
             'audiences_count': 1,
             'teachers_count': 1,
             'discipline': discipline.id,
-            'previous_themes': self.get_ids(self.prev_themes)
+            'previous_themes': self.get_ids(self.prev_themes),
+            'teachers': self.get_ids(teachers)
         }
 
         response = self.authorize_client(self.admin).post(
@@ -388,4 +403,70 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             list(Theme.objects.get(pk=id).previous_themes.all()),
             self.prev_themes
+        )
+        self.assertEquals(
+            list(Theme.objects.get(pk=id).teachers.all()),
+            teachers
+        )
+
+
+class TeacherApiTest(ScheduleApiTestMixin, APITestCase):
+    url = '/api/v1/teacher/'
+
+    def setUp(self):
+        self.admin = UserFactory(is_staff=True)
+
+        self.teachers = TeacherFactory.create_batch(2)
+
+    def test_get_list(self):
+        response = self.authorize_client(self.admin).get(self.url)
+
+        expected_response = [
+            self.serialize_teacher(teacher)
+            for teacher in self.teachers
+        ]
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(
+            response.json(),
+            expected_response
+        )
+
+    def test_searching(self):
+        teacher = TeacherFactory(name='specific')
+        url = self.url + '?search=specif'
+
+        response = self.authorize_client(self.admin).get(url)
+        response_data = response.json()
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response_data), 1)
+        self.assertEquals(
+            response_data,
+            [self.serialize_teacher(teacher)]
+        )
+
+    def test_creation(self):
+        count_before = Teacher.objects.count()
+
+        payload = {
+            'name': 'Some Name',
+            'military_rank': 'Some rank',
+            'work_hours_limit': 300
+        }
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+
+        response_data = response.json()
+        id = response_data.pop('id')
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(response_data, payload)
+
+        self.assertEquals(count_before + 1, Teacher.objects.count())
+        self.assertEquals(
+            Teacher.objects.get(pk=id).name,
+            payload['name']
         )

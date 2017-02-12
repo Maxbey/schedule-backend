@@ -69,3 +69,14 @@ class Theme(BaseScheduleModel):
 
     def __unicode__(self):
         return '%s %s' % self.number, self.name
+
+
+class Teacher(BaseScheduleModel):
+    name = models.CharField(max_length=255)
+    military_rank = models.CharField(max_length=100)
+    work_hours_limit = models.PositiveIntegerField()
+
+    themes = models.ManyToManyField(Theme, related_name='teachers')
+
+    def __unicode__(self):
+        return self.name
