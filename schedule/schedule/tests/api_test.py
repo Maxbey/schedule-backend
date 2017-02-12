@@ -1,17 +1,12 @@
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase, APIClient
 
+from ..models import Specialty, Troop
 from ..factories import UserFactory, SpecialtyFactory, TroopFactory
 
 
 class ScheduleApiTestMixin(object):
     url = '/api/v1/specialty/'
-
-    def setUp(self):
-        self.admin = UserFactory(is_staff=True)
-
-        self.specialties = SpecialtyFactory.create_batch(2)
-        TroopFactory.create_batch(2, specialty=self.specialties[0])
 
     def test_when_unathorized(self):
         response = self.client.get(self.url)
@@ -66,6 +61,12 @@ class ScheduleApiTestMixin(object):
 class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
     url = '/api/v1/specialty/'
 
+    def setUp(self):
+        self.admin = UserFactory(is_staff=True)
+
+        self.specialties = SpecialtyFactory.create_batch(2)
+        TroopFactory.create_batch(2, specialty=self.specialties[0])
+
     def test_get_list(self):
         response = self.authorize_client(self.admin).get(self.url)
         expected_response = [
@@ -77,6 +78,30 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             response.json(),
             expected_response
+        )
+
+    def test_creation(self):
+        count_before = Specialty.objects.count()
+        payload = {
+            'code': '420700'
+        }
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+        response_data = response.json()
+        id = response_data.pop('id')
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(response_data, {
+            'code': payload['code'],
+            'troops': []
+        })
+
+        self.assertEquals(count_before + 1, Specialty.objects.count())
+        self.assertEquals(
+            Specialty.objects.get(pk=id).code,
+            payload['code']
         )
 
 
@@ -99,4 +124,33 @@ class TroopApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             response.json(),
             expected_response
+        )
+
+    def test_creation(self):
+        specialty = SpecialtyFactory(code='code')
+
+        count_before = Troop.objects.count()
+        payload = {
+            'code': '321',
+            'day': 1,
+            'term': 5,
+            'specialty': specialty.id
+        }
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+
+        response_data = response.json()
+        id = response_data.pop('id')
+
+        payload['specialty_code'] = specialty.code
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(response_data, payload)
+
+        self.assertEquals(count_before + 1, Troop.objects.count())
+        self.assertEquals(
+            Troop.objects.get(pk=id).code,
+            payload['code']
         )
