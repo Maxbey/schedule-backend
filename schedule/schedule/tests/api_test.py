@@ -1,13 +1,12 @@
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase, APIClient
 
-from ..models import Specialty, Troop, Discipline
+from ..models import Specialty, Troop, Discipline, Theme
 from ..factories import UserFactory, SpecialtyFactory, TroopFactory, \
-    DisciplineFactory
+    DisciplineFactory, ThemeFactory
 
 
 class ScheduleApiTestMixin(object):
-    url = '/api/v1/specialty/'
 
     def test_when_unathorized(self):
         response = self.client.get(self.url)
@@ -68,7 +67,25 @@ class ScheduleApiTestMixin(object):
             'full_name': discipline.full_name,
             'short_name': discipline.short_name,
 
-            'specialties': self.get_ids(discipline.specialties.all())
+            'specialties': self.get_ids(discipline.specialties.all()),
+            'themes': [
+                self.serialize_theme(theme)
+                for theme in discipline.themes.all()
+            ]
+        }
+
+    def serialize_theme(self, theme):
+        return {
+            'id': theme.id,
+            'name': theme.name,
+            'number': theme.number,
+            'term': theme.term,
+            'self_education': theme.self_education,
+            'duration': theme.duration,
+            'audiences_count': theme.audiences_count,
+            'teachers_count': theme.teachers_count,
+            'discipline': theme.discipline.id,
+            'previous_themes': self.get_ids(theme.previous_themes.all())
         }
 
 
@@ -221,13 +238,15 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
 
         self.disciplines = DisciplineFactory.create_batch(2)
         self.specialties = SpecialtyFactory.create_batch(2)
+        self.themes = ThemeFactory.create_batch(
+            2, discipline=self.disciplines[0]
+        )
 
     def test_get_list(self):
         for discipline in self.disciplines:
             discipline.specialties.set(self.specialties)
 
         response = self.authorize_client(self.admin).get(self.url)
-
         expected_response = [
             self.serialize_discipline(discipline)
             for discipline in self.disciplines
@@ -275,7 +294,8 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(response_data, {
             'full_name': payload['full_name'],
             'short_name': payload['short_name'],
-            'specialties': specialties_ids
+            'specialties': specialties_ids,
+            'themes': []
         })
 
         self.assertEquals(count_before + 1, Discipline.objects.count())
@@ -287,4 +307,85 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             list(Discipline.objects.get(pk=id).specialties.all()),
             specialties
+        )
+
+
+class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
+    url = '/api/v1/theme/'
+
+    def setUp(self):
+        self.admin = UserFactory(is_staff=True)
+        self.themes = ThemeFactory.create_batch(2)
+        self.prev_themes = ThemeFactory.create_batch(2)
+
+    def test_get_list(self):
+        for theme in self.themes:
+            theme.previous_themes.set(self.prev_themes)
+
+        response = self.authorize_client(self.admin).get(self.url)
+
+        expected_themes = [
+            self.serialize_theme(theme)
+            for theme in self.themes
+        ]
+        expected_prev = [
+            self.serialize_theme(theme)
+            for theme in self.prev_themes
+        ]
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(
+            response.json(),
+            expected_themes + expected_prev
+        )
+
+    def test_searching(self):
+        theme = ThemeFactory(name='specific')
+        url = self.url + '?search=specif'
+
+        response = self.authorize_client(self.admin).get(url)
+        response_data = response.json()
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response_data), 1)
+        self.assertEquals(
+            response_data,
+            [self.serialize_theme(theme)]
+        )
+
+    def test_creation(self):
+        discipline = DisciplineFactory()
+
+        count_before = Theme.objects.count()
+        payload = {
+            'name': 'Some Theme Name',
+            'number': '1/1',
+            'term': 5,
+            'self_education': False,
+            'duration': 2,
+            'audiences_count': 1,
+            'teachers_count': 1,
+            'discipline': discipline.id,
+            'previous_themes': self.get_ids(self.prev_themes)
+        }
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+
+        response_data = response.json()
+        id = response_data.pop('id')
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(response_data, payload)
+
+        self.assertEquals(count_before + 1, Theme.objects.count())
+        self.assertEquals(
+            Theme.objects.get(pk=id).name,
+            payload['name']
+        )
+
+        self.assertEquals(
+            list(Theme.objects.get(pk=id).previous_themes.all()),
+            self.prev_themes
         )

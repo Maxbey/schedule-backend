@@ -3,10 +3,10 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import viewsets
 
-from ..models import Specialty, Troop, Discipline
+from ..models import Specialty, Troop, Discipline, Theme
 
 from .serializers import SpecialtySerializer, TroopSerializer, \
-    DisciplineSerializer
+    DisciplineSerializer, ThemeSerializer
 
 
 class BaseScheduleViewSet(viewsets.ModelViewSet):
@@ -36,3 +36,11 @@ class DisciplineViewSet(BaseScheduleViewSet):
 
     filter_backends = [filters.SearchFilter]
     search_fields = ['full_name', 'short_name']
+
+
+class ThemeViewSet(BaseScheduleViewSet):
+    queryset = Theme.objects.all()
+    serializer_class = ThemeSerializer
+
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']

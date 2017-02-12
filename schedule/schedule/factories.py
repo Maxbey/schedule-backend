@@ -3,7 +3,7 @@ import random
 import factory
 from django.contrib.auth import get_user_model
 
-from .models import Specialty, Troop, Discipline
+from .models import Specialty, Troop, Discipline, Theme
 
 
 class SpecialtyFactory(factory.DjangoModelFactory):
@@ -30,6 +30,22 @@ class DisciplineFactory(factory.DjangoModelFactory):
 
     full_name = factory.Faker('word')
     short_name = factory.Faker('word')
+
+
+class ThemeFactory(factory.DjangoModelFactory):
+    class Meta:
+        model = Theme
+
+    name = factory.Faker('name')
+    number = '1/2'
+    term = 5
+    self_education = random.choice([True, False])
+    duration = random.choice([1, 2, 4, 6])
+
+    audiences_count = 1
+    teachers_count = 1
+
+    discipline = factory.SubFactory(DisciplineFactory)
 
 
 class UserFactory(factory.DjangoModelFactory):

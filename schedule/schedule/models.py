@@ -45,3 +45,27 @@ class Discipline(BaseScheduleModel):
 
     def __unicode__(self):
         return self.full_name
+
+
+class Theme(BaseScheduleModel):
+    DURATION_CHOICES = (
+        (1, 1),
+        (2, 2),
+        (4, 4),
+        (6, 6)
+    )
+
+    name = models.CharField(max_length=255)
+    number = models.CharField(max_length=30)
+    term = models.PositiveSmallIntegerField()
+    self_education = models.BooleanField()
+    duration = models.PositiveSmallIntegerField(choices=DURATION_CHOICES)
+
+    audiences_count = models.PositiveSmallIntegerField()
+    teachers_count = models.PositiveSmallIntegerField()
+
+    discipline = models.ForeignKey(Discipline, related_name='themes')
+    previous_themes = models.ManyToManyField('self')
+
+    def __unicode__(self):
+        return '%s %s' % self.number, self.name
