@@ -100,6 +100,20 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
             expected_response
         )
 
+    def test_searching(self):
+        specialty = SpecialtyFactory(code='specific')
+        url = self.url + '?search=specif'
+
+        response = self.authorize_client(self.admin).get(url)
+        response_data = response.json()
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response_data), 1)
+        self.assertEquals(
+            response_data,
+            [self.serialize_specialty(specialty)]
+        )
+
     def test_creation(self):
         count_before = Specialty.objects.count()
         disciplines = DisciplineFactory.create_batch(2)
@@ -153,6 +167,20 @@ class TroopApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             response.json(),
             expected_response
+        )
+
+    def test_searching(self):
+        troop = TroopFactory(code='specific')
+        url = self.url + '?search=specif'
+
+        response = self.authorize_client(self.admin).get(url)
+        response_data = response.json()
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response_data), 1)
+        self.assertEquals(
+            response_data,
+            [self.serialize_troop(troop)]
         )
 
     def test_creation(self):
@@ -209,6 +237,20 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             response.json(),
             expected_response
+        )
+
+    def test_searching(self):
+        discipline = DisciplineFactory(short_name='specific')
+        url = self.url + '?search=specif'
+
+        response = self.authorize_client(self.admin).get(url)
+        response_data = response.json()
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response_data), 1)
+        self.assertEquals(
+            response_data,
+            [self.serialize_discipline(discipline)]
         )
 
     def test_creation(self):
