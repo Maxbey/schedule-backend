@@ -3,7 +3,7 @@ import random
 import factory
 from django.contrib.auth import get_user_model
 
-from .models import Specialty, Troop
+from .models import Specialty, Troop, Discipline
 
 
 class SpecialtyFactory(factory.DjangoModelFactory):
@@ -22,6 +22,14 @@ class TroopFactory(factory.DjangoModelFactory):
     day = random.choice([1, 2, 3, 4, 5])
 
     specialty = factory.SubFactory(SpecialtyFactory)
+
+
+class DisciplineFactory(factory.DjangoModelFactory):
+    class Meta:
+        model = Discipline
+
+    full_name = factory.Faker('word')
+    short_name = factory.Faker('word')
 
 
 class UserFactory(factory.DjangoModelFactory):

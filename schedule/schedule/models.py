@@ -35,3 +35,13 @@ class Troop(BaseScheduleModel):
 
     def __unicode__(self):
         return self.code
+
+
+class Discipline(BaseScheduleModel):
+    full_name = models.CharField(max_length=255)
+    short_name = models.CharField(max_length=40)
+
+    specialties = models.ManyToManyField(Specialty, related_name='disciplines')
+
+    def __unicode__(self):
+        return self.full_name

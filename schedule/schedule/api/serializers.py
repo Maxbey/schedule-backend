@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ..models import Specialty, Troop
+from ..models import Specialty, Troop, Discipline
 
 
 class TroopSerializer(serializers.ModelSerializer):
@@ -27,9 +27,28 @@ class SpecialtySerializer(serializers.ModelSerializer):
     code = serializers.CharField()
 
     troops = TroopSerializer(read_only=True, many=True)
+    disciplines = serializers.PrimaryKeyRelatedField(
+        queryset=Discipline.objects, many=True
+    )
 
     class Meta:
         model = Specialty
+        exclude = [
+            'created_at',
+            'updated_at'
+        ]
+
+
+class DisciplineSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField()
+    short_name = serializers.CharField()
+
+    specialties = serializers.PrimaryKeyRelatedField(
+        queryset=Specialty.objects, many=True
+    )
+
+    class Meta:
+        model = Discipline
         exclude = [
             'created_at',
             'updated_at'

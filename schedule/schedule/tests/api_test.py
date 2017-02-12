@@ -1,8 +1,9 @@
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase, APIClient
 
-from ..models import Specialty, Troop
-from ..factories import UserFactory, SpecialtyFactory, TroopFactory
+from ..models import Specialty, Troop, Discipline
+from ..factories import UserFactory, SpecialtyFactory, TroopFactory, \
+    DisciplineFactory
 
 
 class ScheduleApiTestMixin(object):
@@ -36,6 +37,9 @@ class ScheduleApiTestMixin(object):
 
         return client
 
+    def get_ids(self, items):
+        return [item.id for item in items]
+
     def serialize_troop(self, troop):
         return {
             'id': troop.id,
@@ -54,7 +58,17 @@ class ScheduleApiTestMixin(object):
 
             'troops': [
                 self.serialize_troop(troop) for troop in specialty.troops.all()
-            ]
+            ],
+            'disciplines': self.get_ids(specialty.disciplines.all())
+        }
+
+    def serialize_discipline(self, discipline):
+        return {
+            'id': discipline.id,
+            'full_name': discipline.full_name,
+            'short_name': discipline.short_name,
+
+            'specialties': self.get_ids(discipline.specialties.all())
         }
 
 
@@ -64,11 +78,17 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
     def setUp(self):
         self.admin = UserFactory(is_staff=True)
 
+        self.disciplines = DisciplineFactory.create_batch(2)
         self.specialties = SpecialtyFactory.create_batch(2)
+
         TroopFactory.create_batch(2, specialty=self.specialties[0])
 
     def test_get_list(self):
+        for specialty in self.specialties:
+            specialty.disciplines.set(self.disciplines)
+
         response = self.authorize_client(self.admin).get(self.url)
+
         expected_response = [
             self.serialize_specialty(specialty)
             for specialty in self.specialties
@@ -82,8 +102,12 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
 
     def test_creation(self):
         count_before = Specialty.objects.count()
+        disciplines = DisciplineFactory.create_batch(2)
+        disciplines_ids = self.get_ids(disciplines)
+
         payload = {
-            'code': '420700'
+            'code': '420700',
+            'disciplines': disciplines_ids
         }
 
         response = self.authorize_client(self.admin).post(
@@ -95,13 +119,18 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(response.status_code, 201)
         self.assertEquals(response_data, {
             'code': payload['code'],
-            'troops': []
+            'troops': [],
+            'disciplines': disciplines_ids
         })
 
         self.assertEquals(count_before + 1, Specialty.objects.count())
         self.assertEquals(
             Specialty.objects.get(pk=id).code,
             payload['code']
+        )
+        self.assertEquals(
+            list(Specialty.objects.get(pk=id).disciplines.all()),
+            disciplines
         )
 
 
@@ -153,4 +182,67 @@ class TroopApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             Troop.objects.get(pk=id).code,
             payload['code']
+        )
+
+
+class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
+    url = '/api/v1/discipline/'
+
+    def setUp(self):
+        self.admin = UserFactory(is_staff=True)
+
+        self.disciplines = DisciplineFactory.create_batch(2)
+        self.specialties = SpecialtyFactory.create_batch(2)
+
+    def test_get_list(self):
+        for discipline in self.disciplines:
+            discipline.specialties.set(self.specialties)
+
+        response = self.authorize_client(self.admin).get(self.url)
+
+        expected_response = [
+            self.serialize_discipline(discipline)
+            for discipline in self.disciplines
+        ]
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(
+            response.json(),
+            expected_response
+        )
+
+    def test_creation(self):
+        count_before = Discipline.objects.count()
+        specialties = SpecialtyFactory.create_batch(2)
+        specialties_ids = self.get_ids(specialties)
+
+        payload = {
+            'full_name': 'some long name',
+            'short_name': 'short name',
+            'specialties': specialties_ids
+        }
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+
+        response_data = response.json()
+        id = response_data.pop('id')
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(response_data, {
+            'full_name': payload['full_name'],
+            'short_name': payload['short_name'],
+            'specialties': specialties_ids
+        })
+
+        self.assertEquals(count_before + 1, Discipline.objects.count())
+        self.assertEquals(
+            Discipline.objects.get(pk=id).full_name,
+            payload['full_name']
+        )
+
+        self.assertEquals(
+            list(Discipline.objects.get(pk=id).specialties.all()),
+            specialties
         )
