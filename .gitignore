@@ -2,3 +2,4 @@
 schedule/static/
 .coverage
 *.pyc
+db.*

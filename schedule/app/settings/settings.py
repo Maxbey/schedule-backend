@@ -25,6 +25,12 @@ class Production(BaseSettings):
 
     CORS_ORIGIN_ALLOW_ALL = True
 
+
 class Develop(BaseSettings):
     DEBUG = True
     SECRET_KEY = 'secret'
+
+    INSTALLED_APPS = BaseSettings.INSTALLED_APPS + [
+        'django_extensions',
+        'django_nose'
+    ]

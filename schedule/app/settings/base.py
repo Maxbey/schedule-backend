@@ -18,7 +18,9 @@ class BaseSettings(Configuration):
         'django.contrib.sites',
         'rest_framework',
         'rest_framework.authtoken',
-        'corsheaders'
+        'corsheaders',
+
+        'schedule'
     ]
 
     REST_SESSION_LOGIN = False
