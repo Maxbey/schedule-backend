@@ -3,7 +3,7 @@ import random
 import factory
 from django.contrib.auth import get_user_model
 
-from .models import Specialty, Troop, Discipline, Theme, Teacher
+from .models import Specialty, Troop, Discipline, Theme, Teacher, Audience
 
 
 class SpecialtyFactory(factory.DjangoModelFactory):
@@ -55,6 +55,14 @@ class TeacherFactory(factory.DjangoModelFactory):
     name = factory.Faker('name')
     military_rank = factory.Faker('word')
     work_hours_limit = 300
+
+
+class AudienceFactory(factory.DjangoModelFactory):
+    class Meta:
+        model = Audience
+
+    description = factory.Faker('word')
+    location = factory.Faker('word')
 
 
 class UserFactory(factory.DjangoModelFactory):

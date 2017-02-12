@@ -80,3 +80,13 @@ class Teacher(BaseScheduleModel):
 
     def __unicode__(self):
         return self.name
+
+
+class Audience(BaseScheduleModel):
+    description = models.CharField(max_length=255)
+    location = models.CharField(max_length=40)
+
+    themes = models.ManyToManyField(Theme, related_name='audiences')
+
+    def __unicode__(self):
+        return self.location

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ..models import Specialty, Troop, Discipline, Theme, Teacher
+from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience
 
 
 class TroopSerializer(serializers.ModelSerializer):
@@ -59,6 +59,9 @@ class ThemeSerializer(serializers.ModelSerializer):
     teachers = serializers.PrimaryKeyRelatedField(
         queryset=Teacher.objects, many=True
     )
+    audiences = serializers.PrimaryKeyRelatedField(
+        queryset=Audience.objects, many=True
+    )
 
     class Meta:
         model = Theme
@@ -92,6 +95,19 @@ class TeacherSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Teacher
+        exclude = [
+            'themes',
+            'created_at',
+            'updated_at'
+        ]
+
+
+class AudienceSerializer(serializers.ModelSerializer):
+    description = serializers.CharField()
+    location = serializers.CharField()
+
+    class Meta:
+        model = Audience
         exclude = [
             'themes',
             'created_at',
