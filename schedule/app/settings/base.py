@@ -19,7 +19,7 @@ class BaseSettings(Configuration):
         'rest_framework',
         'rest_framework.authtoken',
         'corsheaders',
-
+        'rest_auth',
         'schedule'
     ]
 
