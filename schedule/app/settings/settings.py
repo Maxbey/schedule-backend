@@ -4,7 +4,7 @@ from .base import BaseSettings
 
 
 class Production(BaseSettings):
-    DEBUG = False
+    DEBUG = True
     SECRET_KEY = values.SecretValue(environ_prefix='')
 
     DATABASES = values.DatabaseURLValue(
