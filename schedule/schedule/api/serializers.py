@@ -28,7 +28,7 @@ class SpecialtySerializer(serializers.ModelSerializer):
 
     troops = TroopSerializer(read_only=True, many=True)
     disciplines = serializers.PrimaryKeyRelatedField(
-        queryset=Discipline.objects, many=True
+        queryset=Discipline.objects, many=True, required=False
     )
 
     class Meta:
@@ -53,7 +53,7 @@ class ThemeSerializer(serializers.ModelSerializer):
         queryset=Discipline.objects
     )
     previous_themes = serializers.PrimaryKeyRelatedField(
-        queryset=Theme.objects, many=True
+        queryset=Theme.objects, many=True, required=False
     )
 
     teachers = serializers.PrimaryKeyRelatedField(
@@ -76,7 +76,7 @@ class DisciplineSerializer(serializers.ModelSerializer):
     short_name = serializers.CharField()
 
     specialties = serializers.PrimaryKeyRelatedField(
-        queryset=Specialty.objects, many=True
+        queryset=Specialty.objects, many=True, required=False
     )
     themes = ThemeSerializer(read_only=True, many=True)
 
