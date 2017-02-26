@@ -85,6 +85,7 @@ class ScheduleApiTestMixin(object):
             'audiences_count': theme.audiences_count,
             'teachers_count': theme.teachers_count,
             'discipline': theme.discipline.id,
+            'discipline_name': theme.discipline.short_name,
             'previous_themes': self.get_ids(theme.previous_themes.all()),
             'teachers': self.get_ids(theme.teachers.all()),
             'audiences': self.get_ids(theme.audiences.all())
@@ -223,7 +224,7 @@ class TroopApiTest(ScheduleApiTestMixin, APITestCase):
         count_before = Troop.objects.count()
         payload = {
             'code': '321',
-            'day': 1,
+            'day': 0,
             'term': 5,
             'specialty': specialty.id
         }
@@ -402,6 +403,7 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
 
         response_data = response.json()
         id = response_data.pop('id')
+        payload['discipline_name'] = discipline.short_name
 
         self.assertEquals(response.status_code, 201)
         self.assertEquals(response_data, payload)

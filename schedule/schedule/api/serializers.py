@@ -45,6 +45,9 @@ class ThemeSerializer(serializers.ModelSerializer):
     term = serializers.IntegerField()
     self_education = serializers.BooleanField()
     duration = serializers.ChoiceField(Theme.DURATION_CHOICES)
+    discipline_name = serializers.CharField(
+        read_only=True, source='discipline.short_name'
+    )
 
     audiences_count = serializers.IntegerField()
     teachers_count = serializers.IntegerField()

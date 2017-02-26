@@ -20,11 +20,11 @@ class Specialty(BaseScheduleModel):
 
 class Troop(BaseScheduleModel):
     DAY_CHOICES = (
-        (1, 'Mo'),
-        (2, 'Tu'),
-        (3, 'We'),
-        (4, 'Th'),
-        (5, 'Fr')
+        (0, 'Mo'),
+        (1, 'Tu'),
+        (2, 'We'),
+        (3, 'Th'),
+        (4, 'Fr')
     )
 
     code = models.CharField(max_length=30)
