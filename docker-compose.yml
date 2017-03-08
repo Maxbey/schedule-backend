@@ -8,8 +8,6 @@ services:
       - web
     ports:
       - "80:80"
-    volumes:
-      - ./schedule/static:/usr/src/app/static
 
   web:
     depends_on:
@@ -22,9 +20,6 @@ services:
       - SECRET_KEY=somesecretvalue
       - DJANGO_CONFIGURATION=Production
       - DJANGO_SETTINGS_MODULE=app.settings.settings
-    volumes:
-      - ./spa:/usr/src/spa
-      - ./schedule/static:/usr/src/app/static
     expose:
       - "8000"
 
