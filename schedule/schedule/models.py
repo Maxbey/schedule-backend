@@ -90,3 +90,18 @@ class Audience(BaseScheduleModel):
 
     def __unicode__(self):
         return self.location
+
+
+class Lesson(BaseScheduleModel):
+    date_of = models.DateTimeField()
+    initial_hour = models.PositiveSmallIntegerField()
+
+    troop = models.ForeignKey(Troop, related_name='lessons')
+    theme = models.ForeignKey(Theme, related_name='lessons')
+
+    def __unicode__(self):
+        discipline_name = self.theme.discipline.short_name
+
+        return '%s %s %s' % (
+            discipline_name, self.theme.number, self.troop.code
+        )
