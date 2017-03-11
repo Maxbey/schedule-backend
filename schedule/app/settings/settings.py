@@ -34,3 +34,17 @@ class Develop(BaseSettings):
         'django_extensions',
         'django_nose'
     ]
+
+
+class Test(BaseSettings):
+    DEBUG = True
+    SECRET_KEY = 'secret'
+
+    INSTALLED_APPS = BaseSettings.INSTALLED_APPS + [
+        'django_extensions',
+        'django_nose'
+    ]
+
+    BROKER_TRANSPORT = 'redis'
+    BROKER_URL = 'url'
+    CELERY_RESULT_BACKEND = 'url'

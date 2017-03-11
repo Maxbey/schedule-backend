@@ -3,3 +3,4 @@ schedule/static/
 .coverage
 *.pyc
 db.*
+dump.sql

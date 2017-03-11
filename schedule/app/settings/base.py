@@ -87,3 +87,14 @@ class BaseSettings(Configuration):
 
     STATIC_URL = '/static/'
     STATIC_ROOT = 'staticfiles'
+
+    BROKER_TRANSPORT = 'redis'
+    BROKER_URL = values.Value(environ_prefix='', environ_name='REDIS_URL')
+    CELERY_RESULT_BACKEND = values.Value(
+        environ_required=True, environ_prefix='', environ_name='REDIS_URL'
+    )
+
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_ACCEPT_CONTENT = ['json']
+    CELERY_ENABLE_UTC = True

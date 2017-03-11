@@ -16,6 +16,8 @@ services:
       context: ./schedule/
       dockerfile: Dockerfile
     environment:
+      - CONTAINER_BEHAVIOUR=DJANGO
+      - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=postgres://postgres@db/postgres
       - SECRET_KEY=somesecretvalue
       - DJANGO_CONFIGURATION=Production
@@ -29,3 +31,23 @@ services:
       - "5432"
     ports:
       - "5432:5432"
+
+  celery:
+    build:
+      context: ./schedule/
+      dockerfile: Dockerfile
+    environment:
+      - CONTAINER_BEHAVIOUR=CELERY
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgres://postgres@db/postgres
+      - SECRET_KEY=somesecretvalue
+      - DJANGO_CONFIGURATION=Production
+      - DJANGO_SETTINGS_MODULE=app.settings.settings
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    image: redis
+    expose:
+      - "6379"
