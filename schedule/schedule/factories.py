@@ -2,8 +2,10 @@ import random
 
 import factory
 from django.contrib.auth import get_user_model
+from django.utils.timezone import now
 
-from .models import Specialty, Troop, Discipline, Theme, Teacher, Audience
+from .models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
+    Lesson
 
 
 class SpecialtyFactory(factory.DjangoModelFactory):
@@ -65,8 +67,18 @@ class AudienceFactory(factory.DjangoModelFactory):
     location = factory.Faker('word')
 
 
-class UserFactory(factory.DjangoModelFactory):
+class LessonFactory(factory.DjangoModelFactory):
+    class Meta:
+        model = Lesson
 
+    date_of = now()
+    initial_hour = 0
+
+    troop = factory.SubFactory(TroopFactory)
+    theme = factory.SubFactory(ThemeFactory)
+
+
+class UserFactory(factory.DjangoModelFactory):
     class Meta:
         model = get_user_model()
 
@@ -83,4 +95,3 @@ class UserFactory(factory.DjangoModelFactory):
         manager = cls._get_manager(model_class)
 
         return manager.create_user(*args, **kwargs)
-

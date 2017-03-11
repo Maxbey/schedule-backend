@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from django.db.models import Sum
 
 
 class BaseScheduleModel(models.Model):
@@ -43,6 +44,10 @@ class Discipline(BaseScheduleModel):
 
     specialties = models.ManyToManyField(Specialty, related_name='disciplines')
 
+    @property
+    def course_length(self):
+        return self.themes.aggregate(Sum('duration'))['duration__sum']
+
     def __unicode__(self):
         return self.full_name
 
@@ -68,7 +73,7 @@ class Theme(BaseScheduleModel):
     previous_themes = models.ManyToManyField('self')
 
     def __unicode__(self):
-        return '%s %s' % self.number, self.name
+        return '%s %s' % (self.number, self.name)
 
 
 class Teacher(BaseScheduleModel):
@@ -93,11 +98,14 @@ class Audience(BaseScheduleModel):
 
 
 class Lesson(BaseScheduleModel):
-    date_of = models.DateTimeField()
+    date_of = models.DateField()
     initial_hour = models.PositiveSmallIntegerField()
 
     troop = models.ForeignKey(Troop, related_name='lessons')
     theme = models.ForeignKey(Theme, related_name='lessons')
+
+    teachers = models.ManyToManyField(Teacher, related_name='lessons')
+    audiences = models.ManyToManyField(Audience, related_name='lessons')
 
     def __unicode__(self):
         discipline_name = self.theme.discipline.short_name
