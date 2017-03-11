@@ -148,9 +148,9 @@ class ScheduleBuilderTest(TestCase):
         result = self.builder.get_disciplines_by_priority(troop)
 
         expected = [
-            disciplines[2],
-            disciplines[0],
-            disciplines[1]
+            (disciplines[2], 0.3),
+            (disciplines[0], 0.6),
+            (disciplines[1], 0.8)
         ]
 
         self.assertEquals(result, expected)
@@ -159,16 +159,57 @@ class ScheduleBuilderTest(TestCase):
         discipline = DisciplineFactory()
         troop = TroopFactory(term=3)
 
-        theme_one = ThemeFactory(number='2/1', discipline=discipline, term=3)
-        theme_two = ThemeFactory(number='1/1', discipline=discipline, term=3)
-        theme_three = ThemeFactory(number='1/2', discipline=discipline, term=3)
+        theme_one = ThemeFactory(number='10.1', discipline=discipline, term=3)
+        theme_two = ThemeFactory(number='2.2', discipline=discipline, term=3)
+        theme_three = ThemeFactory(number='1.3', discipline=discipline, term=3)
 
         LessonFactory(theme=theme_two, troop=troop)
         LessonFactory(theme=theme_three, troop=troop)
 
         result = self.builder.get_next_theme(discipline, troop)
-
         self.assertEquals(theme_one, result)
+
+    def test_check_prev_themes_should_be_found(self):
+        troop = TroopFactory()
+        theme = ThemeFactory()
+
+        prev_themes = ThemeFactory.create_batch(2)
+        theme.previous_themes.set(prev_themes)
+
+        LessonFactory(theme=prev_themes[0], troop=troop)
+
+        self.assertFalse(self.builder.check_prev_themes(theme, troop))
+
+    def test_check_prev_themes_should_not_be_found(self):
+        troop = TroopFactory()
+        theme = ThemeFactory()
+
+        prev_themes = ThemeFactory.create_batch(2)
+        theme.previous_themes.set(prev_themes)
+
+        for prev_theme in prev_themes:
+            LessonFactory(theme=prev_theme, troop=troop)
+
+        self.assertTrue(self.builder.check_prev_themes(theme, troop))
+
+    def test_is_theme_parallel_should_be_true(self):
+        theme = ThemeFactory()
+
+        lesson_one = LessonFactory()
+        lesson_two = LessonFactory(theme=theme)
+
+        self.assertTrue(
+            self.builder.is_theme_parallel(theme, [lesson_one, lesson_two])
+        )
+
+    def test_is_theme_parallel_should_be_false(self):
+        theme = ThemeFactory()
+
+        lessons = LessonFactory.create_batch(2)
+
+        self.assertFalse(
+            self.builder.is_theme_parallel(theme, lessons)
+        )
 
     def create_course(self, discipline, hours):
         ThemeFactory.create_batch(hours / 2, duration=2, discipline=discipline)
