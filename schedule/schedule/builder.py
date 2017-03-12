@@ -66,7 +66,8 @@ class ScheduleBuilder(object):
                 theme, troop, date, initial_hour
             )
 
-            if self.is_theme_parallel(theme, lessons_in_same_time):
+            if self.is_theme_parallel(theme, lessons_in_same_time) \
+                    and len(disciplines) > 1:
                 disciplines.pop(0)
                 continue
 
