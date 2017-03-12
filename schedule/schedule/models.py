@@ -70,7 +70,7 @@ class Theme(BaseScheduleModel):
     teachers_count = models.PositiveSmallIntegerField()
 
     discipline = models.ForeignKey(Discipline, related_name='themes')
-    previous_themes = models.ManyToManyField('self')
+    previous_themes = models.ManyToManyField('self', symmetrical=False)
 
     def __unicode__(self):
         return '%s %s' % (self.number, self.name)

@@ -46,5 +46,4 @@ class Test(BaseSettings):
     ]
 
     BROKER_TRANSPORT = 'redis'
-    BROKER_URL = 'url'
-    CELERY_RESULT_BACKEND = 'url'
+    REDIS_URL = 'url'

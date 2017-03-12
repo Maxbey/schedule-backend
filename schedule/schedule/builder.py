@@ -35,7 +35,8 @@ class ScheduleBuilder(object):
                     lesson.audiences.set(audiences)
 
                     hours += theme.duration
-                    date = date + timedelta(weeks=1)
+
+            date = date + timedelta(weeks=1)
 
     def find_lesson_dependencies(self, disciplines, troop, date, initial_hour):
         while True:
