@@ -52,6 +52,14 @@ class Discipline(BaseScheduleModel):
         return self.full_name
 
 
+class ThemeType(BaseScheduleModel):
+    name = models.CharField(max_length=255)
+    short_name = models.CharField(max_length=30)
+
+    def __unicode__(self):
+        return '%s' % self.name
+
+
 class Theme(BaseScheduleModel):
     DURATION_CHOICES = (
         (1, 1),
@@ -70,6 +78,10 @@ class Theme(BaseScheduleModel):
     teachers_count = models.PositiveSmallIntegerField()
 
     discipline = models.ForeignKey(Discipline, related_name='themes')
+    type = models.ForeignKey(
+        ThemeType, related_name='themes',
+        on_delete=models.SET_NULL, null=True
+    )
     previous_themes = models.ManyToManyField('self', symmetrical=False)
 
     def __unicode__(self):

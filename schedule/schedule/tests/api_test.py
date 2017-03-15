@@ -1,9 +1,11 @@
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase, APIClient
 
-from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience
+from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
+    ThemeType
 from ..factories import UserFactory, SpecialtyFactory, TroopFactory, \
-    DisciplineFactory, ThemeFactory, TeacherFactory, AudienceFactory
+    DisciplineFactory, ThemeFactory, TeacherFactory, AudienceFactory, \
+    ThemeTypeFactory
 
 
 class ScheduleApiTestMixin(object):
@@ -86,6 +88,8 @@ class ScheduleApiTestMixin(object):
             'teachers_count': theme.teachers_count,
             'discipline': theme.discipline.id,
             'discipline_name': theme.discipline.short_name,
+            'type': theme.type.id,
+            'type_name': theme.type.name,
             'previous_themes': self.get_ids(theme.previous_themes.all()),
             'teachers': self.get_ids(theme.teachers.all()),
             'audiences': self.get_ids(theme.audiences.all())
@@ -104,6 +108,13 @@ class ScheduleApiTestMixin(object):
             'id': audience.id,
             'description': audience.description,
             'location': audience.location
+        }
+
+    def serialize_theme_type(self, theme_type):
+        return {
+            'id': theme_type.id,
+            'name': theme_type.name,
+            'short_name': theme_type.short_name
         }
 
 
@@ -379,6 +390,7 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
 
     def test_creation(self):
         discipline = DisciplineFactory()
+        theme_type = ThemeTypeFactory()
         teachers = TeacherFactory.create_batch(2)
         audiences = AudienceFactory.create_batch(2)
 
@@ -392,6 +404,7 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
             'audiences_count': 1,
             'teachers_count': 1,
             'discipline': discipline.id,
+            'type': theme_type.id,
             'previous_themes': self.get_ids(self.prev_themes),
             'teachers': self.get_ids(teachers),
             'audiences': self.get_ids(audiences)
@@ -404,6 +417,7 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
         response_data = response.json()
         id = response_data.pop('id')
         payload['discipline_name'] = discipline.short_name
+        payload['type_name'] = theme_type.name
 
         self.assertEquals(response.status_code, 201)
         self.assertEquals(response_data, payload)
@@ -549,4 +563,65 @@ class AudienceApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             Audience.objects.get(pk=id).location,
             payload['location']
+        )
+
+
+class ThemeTypeApiTest(ScheduleApiTestMixin, APITestCase):
+    url = '/api/v1/theme_type/'
+
+    def setUp(self):
+        self.admin = UserFactory(is_staff=True)
+
+        self.types = ThemeTypeFactory.create_batch(2)
+
+    def test_get_list(self):
+        response = self.authorize_client(self.admin).get(self.url)
+
+        expected_response = [
+            self.serialize_theme_type(theme_type)
+            for theme_type in self.types
+        ]
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(
+            response.json(),
+            expected_response
+        )
+
+    def test_searching(self):
+        theme_type = ThemeTypeFactory(name='specific')
+        url = self.url + '?search=specif'
+
+        response = self.authorize_client(self.admin).get(url)
+        response_data = response.json()
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response_data), 1)
+        self.assertEquals(
+            response_data,
+            [self.serialize_theme_type(theme_type)]
+        )
+
+    def test_creation(self):
+        count_before = ThemeType.objects.count()
+
+        payload = {
+            'name': 'Some full name',
+            'short_name': 'sm-shrt'
+        }
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+
+        response_data = response.json()
+        id = response_data.pop('id')
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(response_data, payload)
+
+        self.assertEquals(count_before + 1, ThemeType.objects.count())
+        self.assertEquals(
+            ThemeType.objects.get(pk=id).short_name,
+            payload['short_name']
         )

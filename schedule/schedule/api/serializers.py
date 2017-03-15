@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience
+from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
+    ThemeType
 
 
 class TroopSerializer(serializers.ModelSerializer):
@@ -48,10 +49,16 @@ class ThemeSerializer(serializers.ModelSerializer):
     discipline_name = serializers.CharField(
         read_only=True, source='discipline.short_name'
     )
+    type_name = serializers.CharField(
+        read_only=True, source='type.name'
+    )
 
     audiences_count = serializers.IntegerField()
     teachers_count = serializers.IntegerField()
 
+    type = serializers.PrimaryKeyRelatedField(
+        queryset=ThemeType.objects
+    )
     discipline = serializers.PrimaryKeyRelatedField(
         queryset=Discipline.objects
     )
@@ -113,6 +120,18 @@ class AudienceSerializer(serializers.ModelSerializer):
         model = Audience
         exclude = [
             'themes',
+            'created_at',
+            'updated_at'
+        ]
+
+
+class ThemeTypeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField()
+    short_name = serializers.CharField()
+
+    class Meta:
+        model = ThemeType
+        exclude = [
             'created_at',
             'updated_at'
         ]

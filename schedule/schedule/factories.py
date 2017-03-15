@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 
 from .models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
-    Lesson
+    Lesson, ThemeType
 
 
 class SpecialtyFactory(factory.DjangoModelFactory):
@@ -34,6 +34,14 @@ class DisciplineFactory(factory.DjangoModelFactory):
     short_name = factory.Faker('word')
 
 
+class ThemeTypeFactory(factory.DjangoModelFactory):
+    class Meta:
+        model = ThemeType
+
+    name = factory.Faker('word')
+    short_name = factory.Faker('word')
+
+
 class ThemeFactory(factory.DjangoModelFactory):
     class Meta:
         model = Theme
@@ -47,6 +55,7 @@ class ThemeFactory(factory.DjangoModelFactory):
     audiences_count = 1
     teachers_count = 1
 
+    type = factory.SubFactory(ThemeTypeFactory)
     discipline = factory.SubFactory(DisciplineFactory)
 
 
