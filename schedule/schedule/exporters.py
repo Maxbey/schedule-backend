@@ -58,24 +58,25 @@ class ExcelExporter(object):
 
     @classmethod
     def form_lesson_string(cls, lesson):
-        template = '%s T №%s кл %s %s'
+        template = '%s %s %s'
 
-        return template % (
-            lesson.discipline.short_name,
+        a = u'%s Т №%s кл %s %s' % (
+            lesson.theme.discipline.short_name,
             lesson.theme.number,
             cls.form_audiences_string(lesson.audiences.all()),
             cls.form_teachers_string(lesson.teachers.all())
         )
 
+        return a
+
     @classmethod
     def form_teachers_string(cls, teachers):
         teachers_str = ''
-
         for teacher in teachers:
             teachers_str += teacher.name.split(' ')[0]
             teachers_str += ', '
 
-        return teachers_str[:-1]
+        return teachers_str[:-2]
 
     @classmethod
     def form_audiences_string(cls, audiences):
@@ -85,7 +86,7 @@ class ExcelExporter(object):
             audiences_str += audience.location
             audiences_str += ', '
 
-        return audiences_str[:-1]
+        return audiences_str[:-2]
 
     @classmethod
     def render_headers(cls, worksheet):
@@ -98,8 +99,7 @@ class ExcelExporter(object):
     @classmethod
     def group_lessons_by_date(cls, lessons_queryset):
         grouped = []
-        dates_distinct = lessons_queryset.order_by('date_of').distinct()
-
+        dates_distinct = lessons_queryset.order_by('date_of').values('date_of').distinct()
         for struct in dates_distinct:
             currect_date = struct['date_of']
 
@@ -107,7 +107,7 @@ class ExcelExporter(object):
                 date_of=currect_date
             )
 
-            grouped.append((currect_date, lessons_by_date))
+            grouped.append((currect_date, list(lessons_by_date)))
 
         return grouped
 
@@ -119,7 +119,7 @@ class ExcelExporter(object):
             struct = (group[0], [])
 
             troop_codes_distinct = set(
-                [lesson.troop.id for lesson in group[1]]
+                [lesson.troop.code for lesson in group[1]]
             )
 
             sorted_troop_codes = sorted(troop_codes_distinct)
