@@ -12,4 +12,5 @@ django_redis
 django_cache_url
 django-configurations
 django-rest-auth
+xlsxwriter
 celery[redis]
