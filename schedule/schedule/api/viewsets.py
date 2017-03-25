@@ -1,14 +1,19 @@
+from django.http import HttpResponse
+from gunicorn.http.wsgi import FileWrapper
 from rest_framework import filters
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import list_route
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import viewsets
 
 from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
-    ThemeType
+    ThemeType, Lesson
 
 from .serializers import SpecialtySerializer, TroopSerializer, \
     DisciplineSerializer, ThemeSerializer, TeacherSerializer, \
     AudienceSerializer, ThemeTypeSerializer
+
+from ..exporters import ExcelExporter
 
 
 class BaseScheduleViewSet(viewsets.ModelViewSet):
@@ -70,3 +75,20 @@ class ThemeTypeViewSet(BaseScheduleViewSet):
 
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
+
+
+class ExportScheduleViewSet(viewsets.GenericViewSet):
+
+    @list_route()
+    def excel(self, request):
+        ExcelExporter.export(Lesson.objects)
+
+        with open('./exported.xlsx', "rb") as excel:
+            data = excel.read()
+
+        response = HttpResponse(
+            data,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=schedule.xlsx'
+        return response

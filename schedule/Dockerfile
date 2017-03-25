@@ -2,8 +2,8 @@ FROM alpine:latest
 RUN apk add --update python py-pip bash
 RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/main py-psycopg2
 
+ADD . /usr/src/app
 COPY ./requirements /usr/requirements/
-COPY . /usr/src/app
 
 WORKDIR /usr/requirements/
 

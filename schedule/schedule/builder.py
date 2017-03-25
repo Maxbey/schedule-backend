@@ -9,7 +9,7 @@ class ScheduleBuilder(object):
 
     def build(self, date):
         for i in range(self.term_length):
-            for troop in Troop.objects.all():
+            for troop in Troop.objects.all().order_by('code'):
                 date = date - timedelta(days=date.weekday())
                 date = date + timedelta(days=troop.day)
                 hours = 0

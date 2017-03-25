@@ -5,11 +5,11 @@ import xlsxwriter
 
 class ExcelExporter(object):
     headers = [
-        'Дата',
-        'Взвод',
-        '9:00 - 10:35',
-        '10:45 - 12:20',
-        '13:00 - 14:45'
+        u'Дата',
+        u'Взвод',
+        u'9:00 - 10:35',
+        u'10:45 - 12:20',
+        u'13:00 - 14:45'
     ]
 
     cells_for_lessons = ['C', 'D', 'E']
@@ -24,6 +24,11 @@ class ExcelExporter(object):
         grouped_by_date = cls.group_lessons_by_date(lessons_queryset)
         grouped_by_troops = cls.group_lessons_by_troops(grouped_by_date)
 
+        cls.render_data(worksheet, grouped_by_troops)
+        workbook.close()
+
+    @classmethod
+    def render_data(cls, worksheet, grouped_by_troops):
         row = 1
         for group in grouped_by_troops:
             worksheet.write(row, 0, group[0].strftime('%d %m'))
@@ -43,9 +48,9 @@ class ExcelExporter(object):
 
                         lesson_range = range_template % (
                             cls.cells_for_lessons[lesson_counter],
-                            row,
+                            row + 1,
                             cls.cells_for_lessons[end_cell],
-                            row
+                            row + 1
                         )
                         worksheet.merge_range(lesson_range, lesson_str)
                         lesson_counter += (lesson.theme.duration / 2)
@@ -55,6 +60,7 @@ class ExcelExporter(object):
                         lesson_counter += 1
 
                 row += 1
+            row += 1
 
     @classmethod
     def form_lesson_string(cls, lesson):
@@ -99,7 +105,8 @@ class ExcelExporter(object):
     @classmethod
     def group_lessons_by_date(cls, lessons_queryset):
         grouped = []
-        dates_distinct = lessons_queryset.order_by('date_of').values('date_of').distinct()
+        dates_distinct = lessons_queryset.order_by('date_of').values(
+            'date_of').distinct()
         for struct in dates_distinct:
             currect_date = struct['date_of']
 
@@ -127,7 +134,7 @@ class ExcelExporter(object):
             for code in sorted_troop_codes:
                 troop_lessons = [
                     lesson for lesson in group[1] if lesson.troop.code == code
-                ]
+                    ]
 
                 sorted_troop_lessons = sorted(
                     troop_lessons, key=lambda lesson: lesson.initial_hour
@@ -138,11 +145,3 @@ class ExcelExporter(object):
             grouped.append(struct)
 
         return grouped
-
-
-
-
-
-
-
-
