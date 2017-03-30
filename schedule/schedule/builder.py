@@ -1,14 +1,16 @@
 from datetime import timedelta
+from django.core.cache import cache
 
 from .models import Lesson, Troop
 
 
 class ScheduleBuilder(object):
-    term_length = 18
     hours_per_day = 6
 
-    def build(self, date):
-        for i in range(self.term_length):
+    def build(self, date, term_length):
+        cache.set('current_term_load', 0)
+
+        for i in range(term_length):
             for troop in Troop.objects.all().order_by('code'):
                 date = date - timedelta(days=date.weekday())
                 date = date + timedelta(days=troop.day)
@@ -35,6 +37,10 @@ class ScheduleBuilder(object):
                     lesson.audiences.set(audiences)
 
                     hours += theme.duration
+                    cache.set(
+                        'current_term_load',
+                        int(cache.get('current_term_load')) + theme.duration
+                    )
 
             date = date + timedelta(weeks=1)
 

@@ -15,6 +15,14 @@ class BaseScheduleModel(models.Model):
 class Specialty(BaseScheduleModel):
     code = models.CharField(max_length=30)
 
+    @property
+    def course_length(self):
+        length = 0
+        for discipline in self.disciplines.all():
+            length += discipline.course_length
+
+        return length
+
     def __unicode__(self):
         return self.code
 

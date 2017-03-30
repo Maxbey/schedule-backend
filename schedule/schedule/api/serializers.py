@@ -1,7 +1,9 @@
+from django.core.cache import cache
 from rest_framework import serializers
 
+from ..tasks import build_schedule
 from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
-    ThemeType
+    ThemeType, Lesson
 
 
 class TroopSerializer(serializers.ModelSerializer):
@@ -135,3 +137,28 @@ class ThemeTypeSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
+
+
+class BuildScheduleSerializer(serializers.Serializer):
+    start_date = serializers.DateField(write_only=True)
+    term_length = serializers.IntegerField(write_only=True)
+
+    def create(self, validated_data):
+        Lesson.objects.all().delete()
+
+        date = validated_data['start_date'].strftime('%Y-%m-%d')
+        async = build_schedule.delay(date, validated_data['term_length'])
+
+        cache.set('build_schedule', async.task_id)
+        cache.set('total_term_load', self.calc_total_term_load())
+
+        return async
+
+    def calc_total_term_load(self):
+        total = 0
+
+        for specialty in Specialty.objects.all():
+            total += specialty.course_length * specialty.troops.count()
+
+        return total
+

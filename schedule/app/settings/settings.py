@@ -12,6 +12,8 @@ class Production(BaseSettings):
         environ_prefix=''
     )
 
+    CACHES = values.CacheURLValue(environ_name='REDIS_URL', environ_prefix='')
+
     INSTALLED_APPS = BaseSettings.INSTALLED_APPS + [
         'raven.contrib.django.raven_compat'
     ]
@@ -29,6 +31,8 @@ class Production(BaseSettings):
 class Develop(BaseSettings):
     DEBUG = True
     SECRET_KEY = 'secret'
+
+    CACHES = values.CacheURLValue(environ_name='REDIS_URL', environ_prefix='')
 
     INSTALLED_APPS = BaseSettings.INSTALLED_APPS + [
         'django_extensions',

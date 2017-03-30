@@ -1,17 +1,22 @@
+from celery.result import AsyncResult
 from django.http import HttpResponse
-from gunicorn.http.wsgi import FileWrapper
+from django.core.cache import cache
+
 from rest_framework import filters
+from rest_framework import mixins
+from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import list_route
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import viewsets
+from rest_framework.response import Response
 
 from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
     ThemeType, Lesson
 
 from .serializers import SpecialtySerializer, TroopSerializer, \
     DisciplineSerializer, ThemeSerializer, TeacherSerializer, \
-    AudienceSerializer, ThemeTypeSerializer
+    AudienceSerializer, ThemeTypeSerializer, BuildScheduleSerializer
 
 from ..exporters import ExcelExporter
 
@@ -78,7 +83,6 @@ class ThemeTypeViewSet(BaseScheduleViewSet):
 
 
 class ExportScheduleViewSet(viewsets.GenericViewSet):
-
     @list_route()
     def excel(self, request):
         ExcelExporter.export(Lesson.objects)
@@ -91,4 +95,37 @@ class ExportScheduleViewSet(viewsets.GenericViewSet):
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response['Content-Disposition'] = 'attachment; filename=schedule.xlsx'
+
         return response
+
+
+class ScheduleViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    authentication_classes = [TokenAuthentication]
+
+    serializer_class = BuildScheduleSerializer
+    schedule_build_task = 'build_schedule'
+
+    def list(self, request, **kwargs):
+        if self.is_build_done():
+            return Response({}, status.HTTP_200_OK)
+
+        total_term_load = float(cache.get('total_term_load'))
+        current_term_load = float(cache.get('current_term_load'))
+
+        struct = {
+            'status': 'BUILD_PROCESSING',
+            'progress': current_term_load / total_term_load
+        }
+
+        return Response(struct, status.HTTP_400_BAD_REQUEST)
+
+    def is_build_done(self):
+        task_id = cache.get(self.schedule_build_task)
+
+        if task_id:
+            status = AsyncResult(task_id).status
+
+            return status == 'SUCCESS'
+
+        return True
