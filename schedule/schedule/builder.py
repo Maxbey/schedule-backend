@@ -71,25 +71,40 @@ class ScheduleBuilder(object):
                 disciplines.pop(0)
                 continue
 
+            teachers_not_enough = False
+            audiences_not_enough = False
+
             found_teachers = self.find_free_teachers(
                 theme, lessons_in_same_time
             )
 
             if len(found_teachers) < theme.teachers_count:
-                disciplines.pop(0)
-                continue
+                if len(disciplines) > 1:
+                    disciplines.pop(0)
+                    continue
 
-            teachers = found_teachers[0:theme.teachers_count]
+                teachers_not_enough = True
 
             found_audiences = self.find_free_audiences(
                 theme, lessons_in_same_time
             )
 
             if len(found_audiences) < theme.audiences_count:
-                disciplines.pop(0)
-                continue
+                if len(disciplines) > 1:
+                    disciplines.pop(0)
+                    continue
 
-            audiences = found_audiences[0:theme.audiences_count]
+                audiences_not_enough = True
+
+            if not teachers_not_enough:
+                teachers = found_teachers[0:theme.teachers_count]
+            else:
+                teachers = []
+
+            if not audiences_not_enough:
+                audiences = found_audiences[0:theme.audiences_count]
+            else:
+                audiences = []
 
             return theme, teachers, audiences
 

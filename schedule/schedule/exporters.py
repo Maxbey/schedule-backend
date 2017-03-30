@@ -24,12 +24,19 @@ class ExcelExporter(object):
         grouped_by_date = cls.group_lessons_by_date(lessons_queryset)
         grouped_by_troops = cls.group_lessons_by_troops(grouped_by_date)
 
-        cls.render_data(worksheet, grouped_by_troops)
+        cls.render_data(workbook, worksheet, grouped_by_troops)
         workbook.close()
 
     @classmethod
-    def render_data(cls, worksheet, grouped_by_troops):
+    def render_data(cls, workbook, worksheet, grouped_by_troops):
         row = 1
+
+        red_color = workbook.add_format()
+        black_color = workbook.add_format()
+
+        red_color.set_font_color('red')
+        black_color.set_font_color('black')
+
         for group in grouped_by_troops:
             worksheet.write(row, 0, group[0].strftime('%d %m'))
 
@@ -38,7 +45,12 @@ class ExcelExporter(object):
 
                 lesson_counter = 0
                 for lesson in troop[1]:
+                    current_format = black_color
                     lesson_str = cls.form_lesson_string(lesson)
+
+                    if not len(lesson.teachers.all()) \
+                            or not len(lesson.audiences.all()):
+                        current_format = red_color
 
                     if lesson.theme.duration > 2:
                         range_template = '%s%i:%s%i'
@@ -52,11 +64,16 @@ class ExcelExporter(object):
                             cls.cells_for_lessons[end_cell],
                             row + 1
                         )
-                        worksheet.merge_range(lesson_range, lesson_str)
+                        worksheet.merge_range(
+                            lesson_range, lesson_str, current_format
+                        )
                         lesson_counter += (lesson.theme.duration / 2)
 
                     else:
-                        worksheet.write(row, lesson_counter + 2, lesson_str)
+                        worksheet.write(
+                            row, lesson_counter + 2, lesson_str,
+                           current_format
+                        )
                         lesson_counter += 1
 
                 row += 1
