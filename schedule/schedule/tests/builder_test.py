@@ -211,6 +211,41 @@ class ScheduleBuilderTest(TestCase):
             self.builder.is_theme_parallel(theme, lessons)
         )
 
+    def test_fetch_disciplines_head_themes(self):
+        troop = TroopFactory(term=3)
+
+        discipline_one = DisciplineFactory()
+        discipline_two = DisciplineFactory()
+        discipline_three = DisciplineFactory()
+
+        theme_one = ThemeFactory(
+            duration=2, number='1.1', discipline=discipline_one, term=3
+        )
+        theme_two = ThemeFactory(
+            duration=2, discipline=discipline_two,
+            number='1.1', term=3
+        )
+        theme_three = ThemeFactory(
+            duration=4, discipline=discipline_two,
+            number='1.2', term=3
+        )
+        ThemeFactory(
+            duration=6, discipline=discipline_three, number='1.1', term=3
+        )
+
+        LessonFactory(troop=troop, theme=theme_two)
+
+        expected_result = [theme_one, theme_three]
+        result = self.builder.fetch_disciplines_head_themes(
+            troop, 2, [
+                (discipline_one, 0.1),
+                (discipline_two, 0.1),
+                (discipline_three, 0.1)
+            ]
+        )
+
+        self.assertEquals(expected_result, result)
+
     def create_course(self, discipline, hours):
         ThemeFactory.create_batch(hours / 2, duration=2, discipline=discipline)
 

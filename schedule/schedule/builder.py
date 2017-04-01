@@ -45,27 +45,21 @@ class ScheduleBuilder(object):
             date = date + timedelta(weeks=1)
 
     def find_lesson_dependencies(self, disciplines, troop, date, initial_hour):
+        if disciplines[0][1] == 1:
+            return None
+
+        themes = self.fetch_disciplines_head_themes(
+            troop, initial_hour, disciplines
+        )
+
         while True:
-            if not len(disciplines):
+            if not len(themes):
                 return None
 
-            discipline = disciplines[0]
-
-            if discipline[1] == 1:
-                return None
-
-            theme = self.get_next_theme(discipline[0], troop)
-
-            if theme is None:
-                disciplines.pop(0)
-                continue
-
-            if initial_hour + theme.duration > self.hours_per_day:
-                disciplines.pop(0)
-                continue
+            theme = themes[0]
 
             if not self.check_prev_themes(theme, troop):
-                disciplines.pop(0)
+                themes.pop(0)
                 continue
 
             lessons_in_same_time = self.get_lessons_in_same_time(
@@ -73,8 +67,8 @@ class ScheduleBuilder(object):
             )
 
             if self.is_theme_parallel(theme, lessons_in_same_time) \
-                    and len(disciplines) > 1:
-                disciplines.pop(0)
+                    and len(themes) > 1:
+                themes.pop(0)
                 continue
 
             teachers_not_enough = False
@@ -85,8 +79,8 @@ class ScheduleBuilder(object):
             )
 
             if len(found_teachers) < theme.teachers_count:
-                if len(disciplines) > 1:
-                    disciplines.pop(0)
+                if len(themes) > 1:
+                    themes.pop(0)
                     continue
 
                 teachers_not_enough = True
@@ -96,8 +90,8 @@ class ScheduleBuilder(object):
             )
 
             if len(found_audiences) < theme.audiences_count:
-                if len(disciplines) > 1:
-                    disciplines.pop(0)
+                if len(themes) > 1:
+                    themes.pop(0)
                     continue
 
                 audiences_not_enough = True
@@ -113,6 +107,21 @@ class ScheduleBuilder(object):
                 audiences = []
 
             return theme, teachers, audiences
+
+    def fetch_disciplines_head_themes(self, troop, initial_hour, disciplines):
+        themes = []
+
+        for discipline in disciplines:
+            next_theme = self.get_next_theme(discipline[0], troop)
+            if next_theme:
+                themes.append(
+                    next_theme
+                )
+
+        return [
+            theme for theme in themes
+            if not (theme.duration + initial_hour > self.hours_per_day)
+        ]
 
     def calc_teacher_ratio(self, teacher):
         hours = 0
