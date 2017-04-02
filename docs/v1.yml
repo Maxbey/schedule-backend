@@ -1,0 +1,163 @@
+---
+swagger: '2.0'
+info:
+  title: OmSTU military faculty schedule API
+  version: "0.0.0"
+schemes:
+  - https
+basePath: api/v1
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  app_token:
+    description: |
+      Use it to access to API by User.
+    type: apiKey
+    name: AUTHORIZATION
+    in: header
+  basicToGetAuthToken:
+    type: basic
+security:
+  - app_token: []
+paths:
+
+  '/statistics/teachers_load/':
+    get:
+      description: Get teachers load statistics in period.
+      summary: teachers load statistics
+      tags:
+        - statistics
+      security:
+        - app_token: []
+      parameters:
+        - name: date_from
+          description: Date from
+          in: query
+          required: true
+          type: string
+          format: date
+        - name: date_to
+          description: Date to
+          in: query
+          required: true
+          type: string
+          format: date
+      responses:
+        '200':
+          description: List teachers statistics
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/teachersLoadStatistics'
+        400:
+          description: Validation error
+        401:
+          description: Authentication failed
+        403:
+          description: Permission denied
+
+  '/statistics/troop/':
+    get:
+      description: Get progress statistics for all troops.
+      summary: troops progress statistics
+      tags:
+        - statistics
+      security:
+        - app_token: []
+      responses:
+        '200':
+          description: List progress statistics for all troops
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/troopProgressStatistics'
+        400:
+          description: Validation error
+        401:
+          description: Authentication failed
+        403:
+          description: Permission denied
+
+  '/statistics/troop/{id}/':
+    get:
+      description: Get troop progress statistics.
+      summary: troop progress statistics
+      tags:
+        - statistics
+      security:
+        - app_token: []
+      parameters:
+        - name: id
+          description: Troop id
+          in: path
+          required: true
+          type: number
+      responses:
+        '200':
+          description: Get troop progress statistics
+          schema:
+              $ref: '#/definitions/troopProgressStatistics'
+        400:
+          description: Validation error
+        401:
+          description: Authentication failed
+        403:
+          description: Permission denied
+
+definitions:
+  troopProgressStatistics:
+    properties:
+      code:
+        type: string
+      statistics:
+        type: object
+        $ref: "#/definitions/troopProgress"
+
+  troopProgress:
+    properties:
+      total_progress:
+        type: number
+      by_disciplines:
+        type: array
+        items:
+          $ref: "#/definitions/troopDisciplineProgress"
+
+  troopDisciplineProgress:
+    properties:
+      name:
+        type: string
+      progress:
+        type: number
+
+  teachersLoadStatistics:
+    properties:
+      name:
+        type: string
+      statistics:
+        type: object
+        $ref: "#/definitions/teachersStatistics"
+
+  teachersStatistics:
+    properties:
+      absolute:
+        type: number
+      relative:
+        type: number
+
+  knownHostBase:
+    properties:
+      marker:
+        type: string
+        enum:
+          - "@revoked"
+          - "@cert-authority"
+          - ""
+      hostnames:
+        type: string
+      key:
+        type: string
+      comment:
+        type: string
