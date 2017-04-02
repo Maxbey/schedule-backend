@@ -200,6 +200,45 @@ class TeacherLoadStatisticsSerializer(serializers.Serializer):
 
 class TroopProgressStatisticsSerializer(serializers.Serializer):
     code = serializers.CharField()
+    statistics = serializers.SerializerMethodField()
+
+    def calc_discipline_progress(self, troop, discipline):
+        lessons = Lesson.objects.filter(
+            troop=troop, theme__discipline=discipline
+        )
+
+        hours = 0
+        for lesson in lessons:
+            hours += lesson.theme.duration
+
+        return float(hours) / float(discipline.course_length)
+
+    def get_statistics(self, troop):
+        progress_by_disciplines = []
+
+        disciplines = troop.specialty.disciplines.all()
+
+        for discipline in disciplines:
+            progress_by_disciplines.append({
+                'name': discipline.short_name,
+                'progress': self.calc_discipline_progress(troop, discipline)
+            })
+
+        progress_summ = 0
+
+        for discipline in progress_by_disciplines:
+            progress_summ += discipline['progress']
+
+        return {
+            'total_progress': float(progress_summ) / float(
+                len(progress_by_disciplines)
+            ),
+            'by_disciplines': progress_by_disciplines
+        }
+
+
+class TroopsProgressStatisticsSerializer(serializers.Serializer):
+    code = serializers.CharField()
     disciplines = serializers.SerializerMethodField()
 
     def calc_discipline_progress(self, troop, discipline):

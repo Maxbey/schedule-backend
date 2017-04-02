@@ -138,7 +138,6 @@ class TeacherLoadStatisticsViewSet(viewsets.GenericViewSet):
 
     queryset = Teacher.objects.all()
     serializer_class = TeacherLoadStatisticsSerializer
-    paginator = None
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -162,11 +161,13 @@ class TeacherLoadStatisticsViewSet(viewsets.GenericViewSet):
         return Response(response_serializer.data)
 
 
-class TroopProgressStatisticsViewSet(mixins.RetrieveModelMixin,
+class TroopProgressStatisticsViewSet(mixins.ListModelMixin,
+                                     mixins.RetrieveModelMixin,
                                      viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, IsAdminUser]
     authentication_classes = [TokenAuthentication]
 
     queryset = Troop.objects.all()
     serializer_class = TroopProgressStatisticsSerializer
+
     paginator = None
