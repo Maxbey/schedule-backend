@@ -3,7 +3,8 @@ from rest_framework.routers import SimpleRouter
 
 from .viewsets import SpecialtyViewSet, TroopViewSet, DisciplineViewSet, \
     ThemeViewSet, TeacherViewSet, AudienceViewSet, ThemeTypeViewSet, \
-    ExportScheduleViewSet, ScheduleViewSet
+    ExportScheduleViewSet, ScheduleViewSet, TeacherLoadStatisticsViewSet, \
+    TroopProgressStatisticsViewSet
 
 router = SimpleRouter()
 
@@ -19,6 +20,16 @@ router.register(
     r'schedule',
     ScheduleViewSet,
     base_name='schedule_operations'
+)
+router.register(
+    r'statistics/teachers_load',
+    TeacherLoadStatisticsViewSet,
+    base_name='statistics_teachers'
+)
+router.register(
+    r'statistics/troop',
+    TroopProgressStatisticsViewSet,
+    base_name='statistics_troop'
 )
 
 urlpatterns = [

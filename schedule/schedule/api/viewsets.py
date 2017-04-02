@@ -16,7 +16,8 @@ from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
 
 from .serializers import SpecialtySerializer, TroopSerializer, \
     DisciplineSerializer, ThemeSerializer, TeacherSerializer, \
-    AudienceSerializer, ThemeTypeSerializer, BuildScheduleSerializer
+    AudienceSerializer, ThemeTypeSerializer, BuildScheduleSerializer, \
+    TeacherLoadStatisticsSerializer, TroopProgressStatisticsSerializer
 
 from ..exporters import ExcelExporter
 
@@ -129,3 +130,43 @@ class ScheduleViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
             return status == 'SUCCESS'
 
         return True
+
+
+class TeacherLoadStatisticsViewSet(viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    authentication_classes = [TokenAuthentication]
+
+    queryset = Teacher.objects.all()
+    serializer_class = TeacherLoadStatisticsSerializer
+    paginator = None
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        serializer_class = self.get_serializer_class()
+        request_serializer = serializer_class(
+            data=request.query_params, context=self.get_serializer_context()
+        )
+        request_serializer.is_valid(raise_exception=True)
+
+        context = self.get_serializer_context()
+        context.update(
+            date_from=request_serializer.validated_data['date_from'],
+            date_to=request_serializer.validated_data['date_to']
+        )
+
+        response_serializer = serializer_class(
+            queryset, context=context, many=True
+        )
+
+        return Response(response_serializer.data)
+
+
+class TroopProgressStatisticsViewSet(mixins.RetrieveModelMixin,
+                                     viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    authentication_classes = [TokenAuthentication]
+
+    queryset = Troop.objects.all()
+    serializer_class = TroopProgressStatisticsSerializer
+    paginator = None

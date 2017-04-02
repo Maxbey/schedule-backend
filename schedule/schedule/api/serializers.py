@@ -162,3 +162,66 @@ class BuildScheduleSerializer(serializers.Serializer):
 
         return total
 
+
+class TeacherLoadStatisticsSerializer(serializers.Serializer):
+    date_from = serializers.DateField(write_only=True)
+    date_to = serializers.DateField(write_only=True)
+
+    name = serializers.CharField(read_only=True)
+    statistics = serializers.SerializerMethodField()
+
+    def filter_lessons(self, teacher, date_from, date_to):
+        return Lesson.objects.filter(
+            date_of__gte=date_from,
+            date_of__lte=date_to,
+            teachers__id__contains=teacher.id
+        )
+
+    def calc_teachers_load(self, teacher):
+        lessons = self.filter_lessons(
+            teacher, self.context['date_from'], self.context['date_to']
+        )
+        absolute = 0
+
+        for lesson in lessons:
+            absolute += lesson.theme.duration
+
+        return absolute
+
+    def get_statistics(self, teacher):
+        absolute = self.calc_teachers_load(teacher)
+        relative = float(absolute) / float(teacher.work_hours_limit)
+
+        return {
+            'absolute': absolute,
+            'relative': relative
+        }
+
+
+class TroopProgressStatisticsSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    disciplines = serializers.SerializerMethodField()
+
+    def calc_discipline_progress(self, troop, discipline):
+        lessons = Lesson.objects.filter(
+            troop=troop, theme__discipline=discipline
+        )
+
+        hours = 0
+        for lesson in lessons:
+            hours += lesson.theme.duration
+
+        return float(hours) / float(discipline.course_length)
+
+    def get_disciplines(self, troop):
+        progress = []
+
+        disciplines = troop.specialty.disciplines.all()
+
+        for discipline in disciplines:
+            progress.append({
+                'name': discipline.short_name,
+                'progress': self.calc_discipline_progress(troop, discipline)
+            })
+
+        return progress

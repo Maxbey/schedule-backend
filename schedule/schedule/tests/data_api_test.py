@@ -19,6 +19,9 @@ class ScheduleApiTestMixin(object):
             {'detail': 'Authentication credentials were not provided.'}
         )
 
+    def format_date(self, date):
+        return date.strftime('%Y-%m-%d')
+
     def test_when_common_user(self):
         user = UserFactory()
 
