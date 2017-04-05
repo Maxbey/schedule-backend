@@ -174,7 +174,7 @@ class TeacherLoadStatisticsSerializer(serializers.Serializer):
         return Lesson.objects.filter(
             date_of__gte=date_from,
             date_of__lte=date_to,
-            teachers__id__contains=teacher.id
+            teachers__id__in=[teacher.id]
         )
 
     def calc_teachers_load(self, teacher):
