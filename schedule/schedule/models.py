@@ -79,7 +79,7 @@ class Theme(BaseScheduleModel):
     name = models.CharField(max_length=255)
     number = models.CharField(max_length=30)
     term = models.PositiveSmallIntegerField()
-    self_education = models.BooleanField()
+    self_education_hours = models.PositiveSmallIntegerField(default=0)
     duration = models.PositiveSmallIntegerField(choices=DURATION_CHOICES)
 
     audiences_count = models.PositiveSmallIntegerField()

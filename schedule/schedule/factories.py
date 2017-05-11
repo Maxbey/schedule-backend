@@ -49,7 +49,7 @@ class ThemeFactory(factory.DjangoModelFactory):
     name = factory.Faker('name')
     number = '1/2'
     term = 5
-    self_education = random.choice([True, False])
+    self_education_hours = 2
     duration = random.choice([1, 2, 4, 6])
 
     audiences_count = 1

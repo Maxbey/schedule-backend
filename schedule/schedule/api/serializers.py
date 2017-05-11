@@ -46,7 +46,7 @@ class ThemeSerializer(serializers.ModelSerializer):
     name = serializers.CharField()
     number = serializers.CharField()
     term = serializers.IntegerField()
-    self_education = serializers.BooleanField()
+    self_education_hours = serializers.IntegerField(required=False, default=0)
     duration = serializers.ChoiceField(Theme.DURATION_CHOICES)
     discipline_name = serializers.CharField(
         read_only=True, source='discipline.short_name'
