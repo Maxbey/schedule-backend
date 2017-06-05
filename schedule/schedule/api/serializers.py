@@ -158,7 +158,8 @@ class BuildScheduleSerializer(serializers.Serializer):
         total = 0
 
         for specialty in Specialty.objects.all():
-            total += specialty.course_length * specialty.troops.count()
+            for troop in specialty.troops:
+                total += specialty.calc_course_length(troop.term)
 
         return total
 
@@ -211,7 +212,12 @@ class TroopProgressStatisticsSerializer(serializers.Serializer):
         for lesson in lessons:
             hours += lesson.theme.duration
 
-        return float(hours) / float(discipline.course_length)
+        course_length = discipline.calc_course_length(troop.term)
+
+        if not course_length:
+            return 1
+
+        return float(hours) / float(course_length)
 
     def get_statistics(self, troop):
         progress_by_disciplines = []
@@ -250,7 +256,7 @@ class TroopsProgressStatisticsSerializer(serializers.Serializer):
         for lesson in lessons:
             hours += lesson.theme.duration
 
-        return float(hours) / float(discipline.course_length)
+        return float(hours) / float(discipline.calc_course_length(troop.term))
 
     def get_disciplines(self, troop):
         progress = []

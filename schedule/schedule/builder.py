@@ -151,8 +151,12 @@ class ScheduleBuilder(object):
                 if Lesson.objects.filter(troop=troop, theme=theme).exists():
                     hours += theme.duration
 
+            course_length = discipline.calc_course_length(troop.term)
+            if not course_length:
+                continue
+
             with_ratio.append(
-                (discipline, float(hours) / float(discipline.course_length))
+                (discipline, float(hours) / float(course_length))
             )
 
         return sorted(with_ratio, key=lambda tup: tup[1])

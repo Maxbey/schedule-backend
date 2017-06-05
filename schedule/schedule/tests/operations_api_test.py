@@ -61,8 +61,10 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         self.admin = UserFactory(is_staff=True)
 
         specialty = SpecialtyFactory()
-        self.troop_one = TroopFactory(specialty=specialty)
-        self.troop_two = TroopFactory(specialty=specialty)
+        term = 4
+
+        self.troop_one = TroopFactory(specialty=specialty, term=term)
+        self.troop_two = TroopFactory(specialty=specialty, term=term)
 
         self.discipline_one = DisciplineFactory()
         self.discipline_two = DisciplineFactory()
@@ -70,8 +72,8 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         specialty.disciplines.set([self.discipline_one, self.discipline_two])
 
         for i in range(6):
-            ThemeFactory(discipline=self.discipline_one, duration=4)
-            ThemeFactory(discipline=self.discipline_two, duration=2)
+            ThemeFactory(discipline=self.discipline_one, duration=4, term=term)
+            ThemeFactory(discipline=self.discipline_two, duration=2, term=term)
 
         self.create_lessons(self.troop_one, self.discipline_one, 2)
         self.create_lessons(self.troop_one, self.discipline_two, 4)
@@ -148,7 +150,7 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(response.json(), expected)
 
     def create_lessons(self, troop, discipline, count):
-        themes = discipline.themes.all()[:count]
+        themes = discipline.themes.filter(term=troop.term)[:count]
 
         for theme in themes:
             LessonFactory(troop=troop, theme=theme)
