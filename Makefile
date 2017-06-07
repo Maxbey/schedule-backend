@@ -3,3 +3,8 @@ release:
 	docker push maxbey/schedule-backend
 test:
 	(cd schedule;coverage run ./manage.py test;coverage report)
+localserver:
+	docker-compose build
+	docker-compose up -d db
+	sleep 5
+	docker-compose up -d nginx

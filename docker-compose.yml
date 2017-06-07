@@ -11,7 +11,7 @@ services:
 
   web:
     depends_on:
-      - db
+      - celery
     build:
       context: ./schedule/
       dockerfile: Dockerfile

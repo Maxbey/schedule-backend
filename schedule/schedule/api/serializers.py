@@ -158,7 +158,7 @@ class BuildScheduleSerializer(serializers.Serializer):
         total = 0
 
         for specialty in Specialty.objects.all():
-            for troop in specialty.troops:
+            for troop in specialty.troops.all():
                 total += specialty.calc_course_length(troop.term)
 
         return total

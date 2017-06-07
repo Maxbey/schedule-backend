@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils.timezone import now
+from mock import patch, Mock, call
 from rest_framework.test import APITestCase
 
 from .data_api_test import ScheduleApiTestMixin
@@ -154,3 +155,49 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
 
         for theme in themes:
             LessonFactory(troop=troop, theme=theme)
+
+
+class ScheduleApiTest(ScheduleApiTestMixin, APITestCase):
+    url = '/api/v1/schedule/'
+
+    def setUp(self):
+        self.admin = UserFactory(is_staff=True)
+
+    @patch('schedule.api.serializers.cache')
+    @patch('schedule.api.serializers.build_schedule')
+    def test_schedule_create(self, build_schedule, cache):
+        specialty = SpecialtyFactory()
+        troop = TroopFactory(specialty=specialty, term=2)
+
+        discipline = DisciplineFactory()
+        discipline.specialties.set([specialty])
+
+        themes = ThemeFactory.create_batch(
+            2, duration=6, term=2, discipline=discipline
+        )
+
+        for theme in themes:
+            LessonFactory(theme=theme, troop=troop)
+
+        payload = {
+            'start_date': datetime.now().strftime('%Y-%m-%d'),
+            'term_length': 18
+        }
+        async_result = Mock(task_id=1)
+        build_schedule.delay.return_value = async_result
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+
+        build_schedule.delay.assert_called_once_with(
+            payload['start_date'], payload['term_length']
+        )
+
+        calls = [
+            call('build_schedule', async_result.task_id),
+            call('total_term_load', 12)
+        ]
+
+        cache.set.assert_has_calls(calls)
+        self.assertEquals(response.status_code, 201)
