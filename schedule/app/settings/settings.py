@@ -49,5 +49,7 @@ class Test(BaseSettings):
         'django_nose'
     ]
 
+    TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+
     BROKER_TRANSPORT = 'redis'
     REDIS_URL = 'url'
