@@ -15,11 +15,11 @@ class BaseScheduleModel(models.Model):
 class Specialty(BaseScheduleModel):
     code = models.CharField(max_length=30)
 
-    @property
-    def course_length(self):
+    def calc_course_length(self, term):
         length = 0
+
         for discipline in self.disciplines.all():
-            length += discipline.course_length
+            length += discipline.calc_course_length(term)
 
         return length
 
@@ -52,9 +52,13 @@ class Discipline(BaseScheduleModel):
 
     specialties = models.ManyToManyField(Specialty, related_name='disciplines')
 
-    @property
-    def course_length(self):
-        return self.themes.aggregate(Sum('duration'))['duration__sum']
+    def calc_course_length(self, term):
+        themes = self.themes.filter(term=term)
+
+        if not themes.exists():
+            return 0
+
+        return themes.aggregate(Sum('duration'))['duration__sum']
 
     def __unicode__(self):
         return self.full_name

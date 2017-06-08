@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils.timezone import now
+from mock import patch, Mock, call
 from rest_framework.test import APITestCase
 
 from .data_api_test import ScheduleApiTestMixin
@@ -61,8 +62,10 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         self.admin = UserFactory(is_staff=True)
 
         specialty = SpecialtyFactory()
-        self.troop_one = TroopFactory(specialty=specialty)
-        self.troop_two = TroopFactory(specialty=specialty)
+        term = 4
+
+        self.troop_one = TroopFactory(specialty=specialty, term=term)
+        self.troop_two = TroopFactory(specialty=specialty, term=term)
 
         self.discipline_one = DisciplineFactory()
         self.discipline_two = DisciplineFactory()
@@ -70,8 +73,8 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         specialty.disciplines.set([self.discipline_one, self.discipline_two])
 
         for i in range(6):
-            ThemeFactory(discipline=self.discipline_one, duration=4)
-            ThemeFactory(discipline=self.discipline_two, duration=2)
+            ThemeFactory(discipline=self.discipline_one, duration=4, term=term)
+            ThemeFactory(discipline=self.discipline_two, duration=2, term=term)
 
         self.create_lessons(self.troop_one, self.discipline_one, 2)
         self.create_lessons(self.troop_one, self.discipline_two, 4)
@@ -148,7 +151,53 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(response.json(), expected)
 
     def create_lessons(self, troop, discipline, count):
-        themes = discipline.themes.all()[:count]
+        themes = discipline.themes.filter(term=troop.term)[:count]
 
         for theme in themes:
             LessonFactory(troop=troop, theme=theme)
+
+
+class ScheduleApiTest(ScheduleApiTestMixin, APITestCase):
+    url = '/api/v1/schedule/'
+
+    def setUp(self):
+        self.admin = UserFactory(is_staff=True)
+
+    @patch('schedule.api.serializers.cache')
+    @patch('schedule.api.serializers.build_schedule')
+    def test_schedule_create(self, build_schedule, cache):
+        specialty = SpecialtyFactory()
+        troop = TroopFactory(specialty=specialty, term=2)
+
+        discipline = DisciplineFactory()
+        discipline.specialties.set([specialty])
+
+        themes = ThemeFactory.create_batch(
+            2, duration=6, term=2, discipline=discipline
+        )
+
+        for theme in themes:
+            LessonFactory(theme=theme, troop=troop)
+
+        payload = {
+            'start_date': datetime.now().strftime('%Y-%m-%d'),
+            'term_length': 18
+        }
+        async_result = Mock(task_id=1)
+        build_schedule.delay.return_value = async_result
+
+        response = self.authorize_client(self.admin).post(
+            self.url, data=payload
+        )
+
+        build_schedule.delay.assert_called_once_with(
+            payload['start_date'], payload['term_length']
+        )
+
+        calls = [
+            call('build_schedule', async_result.task_id),
+            call('total_term_load', 12)
+        ]
+
+        cache.set.assert_has_calls(calls)
+        self.assertEquals(response.status_code, 201)
