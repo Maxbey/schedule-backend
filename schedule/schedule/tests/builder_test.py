@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from django.conf import settings
 from django.utils.timezone import now
 
 from ..models import Lesson
@@ -255,6 +256,20 @@ class ScheduleBuilderTest(TestCase):
         )
 
         self.assertEquals(expected_result, result)
+
+    def test_sort_themes_with_self_ed(self):
+        theme_one = ThemeFactory(self_education_hours=1)
+        theme_two = ThemeFactory(self_education_hours=2)
+        theme_three = ThemeFactory(self_education_hours=0)
+
+        expected = [theme_two, theme_one]
+
+        self.assertEquals(
+            self.builder.sort_themes_with_self_ed(
+                [theme_one, theme_two, theme_three]
+            ),
+            expected
+        )
 
     def create_course(self, term, discipline, hours):
         ThemeFactory.create_batch(

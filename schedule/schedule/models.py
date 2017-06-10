@@ -58,7 +58,12 @@ class Discipline(BaseScheduleModel):
         if not themes.exists():
             return 0
 
-        return themes.aggregate(Sum('duration'))['duration__sum']
+        duration = themes.aggregate(Sum('duration'))['duration__sum']
+        self_ed = themes.aggregate(
+            Sum('self_education_hours')
+        )['self_education_hours__sum']
+
+        return duration + self_ed
 
     def __unicode__(self):
         return self.full_name
@@ -130,6 +135,8 @@ class Lesson(BaseScheduleModel):
 
     teachers = models.ManyToManyField(Teacher, related_name='lessons')
     audiences = models.ManyToManyField(Audience, related_name='lessons')
+
+    self_education = models.BooleanField(default=False)
 
     def __unicode__(self):
         discipline_name = self.theme.discipline.short_name

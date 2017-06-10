@@ -8,11 +8,14 @@ from .models import Lesson, Troop
 
 class ScheduleBuilder(object):
     def build(self, date, term_length):
+        self_ed_themes_buffer = {}
         for i in range(term_length):
+
             for troop in Troop.objects.all().order_by('code'):
                 date = date - timedelta(days=date.weekday())
                 date = date + timedelta(days=troop.day)
                 hours = 0
+                themes_today = []
 
                 while hours != settings.LESSON_HOURS:
                     disciplines = self.get_disciplines_by_priority(troop)
@@ -25,25 +28,143 @@ class ScheduleBuilder(object):
                         break
 
                     theme, teachers, audiences = lesson_dependencies
+                    themes_today.append(theme)
 
-                    lesson = Lesson.objects.create(
-                        date_of=date, initial_hour=hours,
-                        troop=troop, theme=theme,
+                    self.create_lesson(
+                        date, troop, hours,
+                        theme, teachers, audiences, theme.duration
                     )
 
-                    lesson.teachers.set(teachers)
-                    lesson.audiences.set(audiences)
-
                     hours += theme.duration
-                    cache.set(
-                        'current_term_load',
-                        int(cache.get('current_term_load')) + theme.duration,
-                        timeout=None
+
+                if not str(troop.id) in self_ed_themes_buffer:
+                    self_ed_themes_buffer[str(troop.id)] = []
+
+                self_eds_today = self.sort_themes_with_self_ed(themes_today)
+                self_eds_buffer = self.sort_themes_with_self_ed(
+                    self_ed_themes_buffer[str(troop.id)]
+                )
+
+                self_ed_themes_buffer[str(troop.id)] = self_eds_today \
+                                                       + self_eds_buffer
+
+                while hours != settings.LESSON_HOURS + \
+                        settings.SELF_EDUCATION_HOURS:
+                    lesson_dependencies = self.find_self_ed_dependencies(
+                        self_ed_themes_buffer[str(troop.id)][:],
+                        troop, date, hours
+                    )
+
+                    if lesson_dependencies is None:
+                        break
+
+                    theme, teachers, audiences = lesson_dependencies
+
+                    self.create_lesson(
+                        date, troop, hours, theme,
+                        teachers, audiences, theme.self_education_hours, True
+                    )
+
+                    hours += theme.self_education_hours
+
+                    self.remove_item_by_id(
+                        self_ed_themes_buffer[str(troop.id)],
+                        theme.id
                     )
 
             date = date + timedelta(weeks=1)
 
-    def find_lesson_dependencies(self, disciplines, troop, date, initial_hour):
+    def remove_item_by_id(self, items, id):
+        for index, item in enumerate(items):
+            if item.id == id:
+                del items[index]
+                break
+
+    def create_lesson(self, date_of, troop, initial_hour,
+                      theme, teachers, audiences, delta, self_ed=False):
+        lesson = Lesson.objects.create(
+            date_of=date_of, initial_hour=initial_hour,
+            troop=troop, theme=theme, self_education=self_ed
+        )
+
+        lesson.teachers.set(teachers)
+        lesson.audiences.set(audiences)
+
+        cache.set(
+            'current_term_load',
+            int(cache.get('current_term_load')) + delta,
+            timeout=None
+        )
+
+        return lesson
+
+    def sort_themes_with_self_ed(self, themes):
+        with_self_ed = [
+            theme for theme in themes
+            if theme.self_education_hours
+        ]
+
+        return sorted(
+            with_self_ed, key=lambda theme: theme.self_education_hours,
+            reverse=True
+        )
+
+    def find_self_ed_dependencies(
+            self, themes, troop, date, initial_hour):
+        max_end_hour = settings.LESSON_HOURS + \
+                       settings.SELF_EDUCATION_HOURS
+        themes = [
+            theme for theme in themes
+            if not initial_hour + theme.self_education_hours > max_end_hour
+        ]
+
+        while True:
+            if not len(themes):
+                return None
+
+            theme = themes[0]
+
+            lessons_in_same_time = self.get_lessons_in_same_time(
+                theme, troop, date, initial_hour
+            )
+
+            found_teachers = self.find_free_teachers(
+                theme, lessons_in_same_time
+            )
+
+            if not len(found_teachers):
+                if len(themes) > 1:
+                    themes.pop(0)
+                    continue
+
+                found_teachers = []
+
+            found_audiences = self.find_free_audiences(
+                theme, lessons_in_same_time
+            )
+
+            if not len(found_audiences):
+                if len(themes) > 1:
+                    themes.pop(0)
+                    continue
+
+                found_audiences = []
+
+            if not len(found_teachers):
+                teachers = []
+            else:
+                teachers = [self.sort_teachers_by_priority(found_teachers)[0]]
+
+            if not len(found_audiences):
+                audiences = []
+            else:
+                audiences = [found_audiences[0]]
+
+            return theme, teachers, audiences
+
+
+    def find_lesson_dependencies(self, disciplines, troop,
+                                 date, initial_hour):
         if disciplines[0][1] == 1:
             return None
 
@@ -145,7 +266,7 @@ class ScheduleBuilder(object):
         for discipline in troop.specialty.disciplines.all():
             hours = 0
 
-            for theme in discipline.themes.all():
+            for theme in discipline.themes.filter(term=troop.term):
                 if Lesson.objects.filter(troop=troop, theme=theme).exists():
                     hours += theme.duration
 
