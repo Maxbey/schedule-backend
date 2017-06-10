@@ -14,3 +14,4 @@ django-configurations
 django-rest-auth
 xlsxwriter
 celery[redis]
+django-extensions

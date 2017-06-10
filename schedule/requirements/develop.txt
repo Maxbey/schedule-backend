@@ -1,6 +1,5 @@
 raven
 pudb
-django-extensions
 docker-compose
 
 -r test.txt

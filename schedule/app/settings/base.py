@@ -20,6 +20,7 @@ class BaseSettings(Configuration):
         'rest_framework.authtoken',
         'corsheaders',
         'rest_auth',
+        'django_extensions',
         'schedule'
     ]
 

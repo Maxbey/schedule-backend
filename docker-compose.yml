@@ -22,6 +22,7 @@ services:
       - SECRET_KEY=somesecretvalue
       - DJANGO_CONFIGURATION=Production
       - DJANGO_SETTINGS_MODULE=app.settings.settings
+      - RAVEN_DSN=http://public:secret@sentry:9000/2
     expose:
       - "8000"
 
@@ -43,6 +44,7 @@ services:
       - SECRET_KEY=somesecretvalue
       - DJANGO_CONFIGURATION=Production
       - DJANGO_SETTINGS_MODULE=app.settings.settings
+      - RAVEN_DSN=http://public:secret@sentry:9000/2
     depends_on:
       - db
       - redis
@@ -51,3 +53,14 @@ services:
     image: redis
     expose:
       - "6379"
+
+  sentry:
+    image: slafs/sentry
+    ports:
+      - "9000:9000"
+    environment:
+      - SENTRY_INITIAL_TEAM=schedule
+      - SENTRY_INITIAL_PROJECT=schedule-backend
+      - SENTRY_INITIAL_KEY=public:secret
+      - SECRET_KEY=django_secret_key
+      - SENTRY_URL_PREFIX=http://sentry:9000

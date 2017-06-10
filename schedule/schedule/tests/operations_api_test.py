@@ -195,8 +195,8 @@ class ScheduleApiTest(ScheduleApiTestMixin, APITestCase):
         )
 
         calls = [
-            call('build_schedule', async_result.task_id),
-            call('total_term_load', 12)
+            call('build_schedule', async_result.task_id, timeout=None),
+            call('total_term_load', 12, timeout=None)
         ]
 
         cache.set.assert_has_calls(calls)

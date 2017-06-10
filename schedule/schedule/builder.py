@@ -8,8 +8,6 @@ class ScheduleBuilder(object):
     hours_per_day = 6
 
     def build(self, date, term_length):
-        cache.set('current_term_load', 0)
-
         for i in range(term_length):
             for troop in Troop.objects.all().order_by('code'):
                 date = date - timedelta(days=date.weekday())
@@ -39,7 +37,8 @@ class ScheduleBuilder(object):
                     hours += theme.duration
                     cache.set(
                         'current_term_load',
-                        int(cache.get('current_term_load')) + theme.duration
+                        int(cache.get('current_term_load')) + theme.duration,
+                        timeout=None
                     )
 
             date = date + timedelta(weeks=1)

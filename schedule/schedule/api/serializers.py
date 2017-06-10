@@ -145,12 +145,15 @@ class BuildScheduleSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         Lesson.objects.all().delete()
+        cache.set('current_term_load', 0, timeout=None)
 
         date = validated_data['start_date'].strftime('%Y-%m-%d')
         async = build_schedule.delay(date, validated_data['term_length'])
 
-        cache.set('build_schedule', async.task_id)
-        cache.set('total_term_load', self.calc_total_term_load())
+        cache.set('build_schedule', async.task_id, timeout=None)
+        cache.set(
+            'total_term_load', self.calc_total_term_load(), timeout=None
+        )
 
         return async
 
