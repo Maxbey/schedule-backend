@@ -1,12 +1,12 @@
 from datetime import timedelta
+
+from django.conf import settings
 from django.core.cache import cache
 
 from .models import Lesson, Troop
 
 
 class ScheduleBuilder(object):
-    hours_per_day = 6
-
     def build(self, date, term_length):
         for i in range(term_length):
             for troop in Troop.objects.all().order_by('code'):
@@ -14,7 +14,7 @@ class ScheduleBuilder(object):
                 date = date + timedelta(days=troop.day)
                 hours = 0
 
-                while hours != self.hours_per_day:
+                while hours != settings.LESSON_HOURS:
                     disciplines = self.get_disciplines_by_priority(troop)
 
                     lesson_dependencies = self.find_lesson_dependencies(
@@ -96,7 +96,9 @@ class ScheduleBuilder(object):
                 audiences_not_enough = True
 
             if not teachers_not_enough:
-                teachers = found_teachers[0:theme.teachers_count]
+                teachers = self.sort_teachers_by_priority(
+                    found_teachers
+                )[0:theme.teachers_count]
             else:
                 teachers = []
 
@@ -119,7 +121,7 @@ class ScheduleBuilder(object):
 
         return [
             theme for theme in themes
-            if not (theme.duration + initial_hour > self.hours_per_day)
+            if not (theme.duration + initial_hour > settings.LESSON_HOURS)
         ]
 
     def calc_teacher_ratio(self, teacher):

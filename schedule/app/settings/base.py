@@ -99,3 +99,7 @@ class BaseSettings(Configuration):
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_ACCEPT_CONTENT = ['json']
     CELERY_ENABLE_UTC = True
+
+    # The amount of learning hours per day.
+    LESSON_HOURS = 6
+    SELF_EDUCATION_HOURS = 2
