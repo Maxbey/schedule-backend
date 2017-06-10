@@ -57,10 +57,6 @@ class ScheduleBuilder(object):
 
             theme = themes[0]
 
-            if not self.check_prev_themes(theme, troop):
-                themes.pop(0)
-                continue
-
             lessons_in_same_time = self.get_lessons_in_same_time(
                 theme, troop, date, initial_hour
             )
@@ -122,6 +118,7 @@ class ScheduleBuilder(object):
         return [
             theme for theme in themes
             if not (theme.duration + initial_hour > settings.LESSON_HOURS)
+            and self.check_prev_themes(theme, troop)
         ]
 
     def calc_teacher_ratio(self, teacher):

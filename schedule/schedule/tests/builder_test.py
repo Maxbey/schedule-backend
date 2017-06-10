@@ -219,6 +219,7 @@ class ScheduleBuilderTest(TestCase):
         discipline_one = DisciplineFactory()
         discipline_two = DisciplineFactory()
         discipline_three = DisciplineFactory()
+        discipline_four = DisciplineFactory()
 
         theme_one = ThemeFactory(
             duration=2, number='1.1', discipline=discipline_one, term=3
@@ -231,6 +232,12 @@ class ScheduleBuilderTest(TestCase):
             duration=4, discipline=discipline_two,
             number='1.2', term=3
         )
+        theme_four = ThemeFactory(
+            duration=2, discipline=discipline_four, number='1.1', term=3
+        )
+        theme_five = ThemeFactory(discipline=discipline_one)
+        theme_four.previous_themes.set([theme_five])
+
         ThemeFactory(
             duration=6, discipline=discipline_three, number='1.1', term=3
         )
@@ -241,8 +248,9 @@ class ScheduleBuilderTest(TestCase):
         result = self.builder.fetch_disciplines_head_themes(
             troop, 2, [
                 (discipline_one, 0.1),
-                (discipline_two, 0.1),
-                (discipline_three, 0.1)
+                (discipline_two, 0.2),
+                (discipline_three, 0.3),
+                (discipline_four, 0.4)
             ]
         )
 
