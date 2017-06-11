@@ -162,7 +162,6 @@ class ScheduleBuilder(object):
 
             return theme, teachers, audiences
 
-
     def find_lesson_dependencies(self, disciplines, troop,
                                  date, initial_hour):
         if disciplines[0][1] == 1:
@@ -267,8 +266,15 @@ class ScheduleBuilder(object):
             hours = 0
 
             for theme in discipline.themes.filter(term=troop.term):
-                if Lesson.objects.filter(troop=troop, theme=theme).exists():
+                if Lesson.objects.filter(
+                        troop=troop, theme=theme, self_education=False
+                ).exists():
                     hours += theme.duration
+
+                if Lesson.objects.filter(
+                        troop=troop, theme=theme, self_education=True
+                ).exists():
+                    hours += theme.self_education_hours
 
             course_length = discipline.calc_course_length(troop.term)
             if not course_length:

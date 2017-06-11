@@ -151,9 +151,9 @@ class ScheduleBuilderTest(TestCase):
         result = self.builder.get_disciplines_by_priority(troop)
 
         expected = [
-            (disciplines[2], 0.3),
-            (disciplines[0], 0.6),
-            (disciplines[1], 0.8)
+            (disciplines[2], 0.2),
+            (disciplines[0], 0.4),
+            (disciplines[1], 16.0 / 30)
         ]
 
         self.assertEquals(result, expected)
@@ -273,7 +273,8 @@ class ScheduleBuilderTest(TestCase):
 
     def create_course(self, term, discipline, hours):
         ThemeFactory.create_batch(
-            hours / 2, duration=2, discipline=discipline, term=term
+            hours / 2, duration=2, discipline=discipline, term=term,
+            self_education_hours=1
         )
 
     def add_load_for_troop(self, troop, discipline, lessons_count):

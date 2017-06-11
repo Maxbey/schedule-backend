@@ -86,15 +86,15 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         expected = {
                 'code': self.troop_one.code,
                 'statistics': {
-                    'total_progress': (8.0 / 24 + 8.0 / 12) / 2.0,
+                    'total_progress': (8.0 / 36 + 8.0 / 24) / 2.0,
                     'by_disciplines': [
                         {
                             'name': self.discipline_one.short_name,
-                            'progress': 8.0 / 24
+                            'progress': 8.0 / 36
                         },
                         {
                             'name': self.discipline_two.short_name,
-                            'progress': 8.0 / 12
+                            'progress': 8.0 / 24
                         }
                     ]
                 }
@@ -113,15 +113,15 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
             {
                 'code': self.troop_one.code,
                 'statistics': {
-                    'total_progress': (8.0 / 24 + 8.0 / 12) / 2.0,
+                    'total_progress': (8.0 / 36 + 8.0 / 24) / 2.0,
                     'by_disciplines': [
                         {
                             'name': self.discipline_one.short_name,
-                            'progress': 8.0 / 24
+                            'progress': 8.0 / 36
                         },
                         {
                             'name': self.discipline_two.short_name,
-                            'progress': 8.0 / 12
+                            'progress': 8.0 / 24
                         }
                     ]
                 }
@@ -129,15 +129,15 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
             {
                 'code': self.troop_two.code,
                 'statistics': {
-                    'total_progress': (16.0 / 24 + 4.0 / 12) / 2.0,
+                    'total_progress': (16.0 / 36 + 4.0 / 24) / 2.0,
                     'by_disciplines': [
                         {
                             'name': self.discipline_one.short_name,
-                            'progress': 16.0 / 24
+                            'progress': 16.0 / 36
                         },
                         {
                             'name': self.discipline_two.short_name,
-                            'progress': 4.0 / 12
+                            'progress': 4.0 / 24
                         }
                     ]
                 }
@@ -173,7 +173,8 @@ class ScheduleApiTest(ScheduleApiTestMixin, APITestCase):
         discipline.specialties.set([specialty])
 
         themes = ThemeFactory.create_batch(
-            2, duration=6, term=2, discipline=discipline
+            2, duration=6, term=2, discipline=discipline,
+            self_education_hours=1
         )
 
         for theme in themes:
@@ -195,8 +196,9 @@ class ScheduleApiTest(ScheduleApiTestMixin, APITestCase):
         )
 
         calls = [
+            call('current_term_load', 0, timeout=None),
             call('build_schedule', async_result.task_id, timeout=None),
-            call('total_term_load', 12, timeout=None)
+            call('total_term_load', 14, timeout=None)
         ]
 
         cache.set.assert_has_calls(calls)

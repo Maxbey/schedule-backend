@@ -188,7 +188,10 @@ class TeacherLoadStatisticsSerializer(serializers.Serializer):
         absolute = 0
 
         for lesson in lessons:
-            absolute += lesson.theme.duration
+            if lesson.self_education:
+                absolute += lesson.theme.self_education_hours
+            else:
+                absolute += lesson.theme.duration
 
         return absolute
 
