@@ -1,4 +1,5 @@
 from datetime import timedelta
+from random import shuffle
 
 from django.conf import settings
 from django.core.cache import cache
@@ -10,8 +11,10 @@ class ScheduleBuilder(object):
     def build(self, date, term_length):
         self_ed_themes_buffer = {}
         for i in range(term_length):
+            troop_list = list(Troop.objects.all())
+            shuffle(troop_list)
 
-            for troop in Troop.objects.all().order_by('code'):
+            for troop in troop_list:
                 date = date - timedelta(days=date.weekday())
                 date = date + timedelta(days=troop.day)
                 hours = 0

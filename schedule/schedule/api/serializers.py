@@ -216,7 +216,10 @@ class TroopProgressStatisticsSerializer(serializers.Serializer):
 
         hours = 0
         for lesson in lessons:
-            hours += lesson.theme.duration
+            if lesson.self_education:
+                hours += lesson.theme.self_education_hours
+            else:
+                hours += lesson.theme.duration
 
         course_length = discipline.calc_course_length(troop.term)
 
@@ -260,7 +263,10 @@ class TroopsProgressStatisticsSerializer(serializers.Serializer):
 
         hours = 0
         for lesson in lessons:
-            hours += lesson.theme.duration
+            if lesson.self_education:
+                hours += lesson.theme.self_education_hours
+            else:
+                hours += lesson.theme.duration
 
         return float(hours) / float(discipline.calc_course_length(troop.term))
 
