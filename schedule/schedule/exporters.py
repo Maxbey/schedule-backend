@@ -2,6 +2,8 @@
 
 import xlsxwriter
 
+from .models import Troop
+
 
 class ExcelExporter(object):
     headers = [
@@ -182,6 +184,21 @@ class ExcelExporter(object):
 
                 struct[1].append((code, sorted_troop_lessons))
 
+            cls.patch_troops_list(
+                struct[1][0][0],
+                sorted_troop_codes,
+                struct[1]
+            )
             grouped.append(struct)
 
         return grouped
+
+    @classmethod
+    def patch_troops_list(cls, first_code, codes, troops_list):
+        current_day = Troop.objects.get(code=first_code).day
+        troops_in_day = Troop.objects.filter(day=current_day)
+        diff = set([troop.code for troop in troops_in_day]) - set(codes)
+
+        for code in diff:
+            troops_list.append((code, []))
+

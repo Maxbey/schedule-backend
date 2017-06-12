@@ -5,7 +5,7 @@ from unittest import TestCase
 from datetime import timedelta
 from django.utils.timezone import now
 
-from ..models import Lesson
+from ..models import Lesson, Troop
 from ..factories import TeacherFactory, AudienceFactory, DisciplineFactory, \
     ThemeFactory, LessonFactory, TroopFactory
 from ..exporters import ExcelExporter
@@ -14,6 +14,7 @@ from ..exporters import ExcelExporter
 class ExcelExporterTest(TestCase):
     def tearDown(self):
         Lesson.objects.all().delete()
+        Troop.objects.all().delete()
 
     def test_form_lesson_string(self):
         teacher_one = TeacherFactory(name=u'Ааа Ббб Ввв')
@@ -54,8 +55,9 @@ class ExcelExporterTest(TestCase):
         self.assertEquals(result, expected_result)
 
     def test_group_lessons_by_troops(self):
-        troop_one = TroopFactory(code='111')
-        troop_two = TroopFactory(code='222')
+        troop_one = TroopFactory(code='111', day=1)
+        troop_two = TroopFactory(code='222', day=1)
+        TroopFactory(code='333', day=1)
 
         earliest_date = (now() + timedelta(days=-2)).date()
         latest_date = (now() + timedelta(days=1)).date()
@@ -88,11 +90,13 @@ class ExcelExporterTest(TestCase):
         expected_result = [
             (earliest_date, [
                 ('111', [lesson_six, lesson_four]),
-                ('222', [lesson_three])
+                ('222', [lesson_three]),
+                ('333', [])
             ]),
             (latest_date, [
                 ('111', [lesson_five, lesson_two]),
-                ('222', [lesson_one])
+                ('222', [lesson_one]),
+                ('333', [])
             ])
         ]
 
