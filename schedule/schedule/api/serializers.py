@@ -30,6 +30,9 @@ class SpecialtySerializer(serializers.ModelSerializer):
     code = serializers.CharField()
 
     troops = TroopSerializer(read_only=True, many=True)
+    disciplines = serializers.PrimaryKeyRelatedField(
+        read_only=True, source='related_disciplines_ids'
+    )
 
     class Meta:
         model = Specialty
@@ -73,7 +76,7 @@ class ThemeSerializer(serializers.ModelSerializer):
     )
 
     specialties = serializers.PrimaryKeyRelatedField(
-        queryset=Specialty.objects, many=True, required=False
+        queryset=Specialty.objects, many=True
     )
 
     class Meta:
@@ -89,6 +92,9 @@ class DisciplineSerializer(serializers.ModelSerializer):
     short_name = serializers.CharField()
 
     themes = ThemeSerializer(read_only=True, many=True)
+    specialties = serializers.PrimaryKeyRelatedField(
+        read_only=True, source='related_specialties_ids'
+    )
 
     class Meta:
         model = Discipline

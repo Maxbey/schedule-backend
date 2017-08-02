@@ -61,3 +61,16 @@ class DisciplineModelTest(TestCase):
         theme.specialties.set([specialty])
 
         self.assertEquals(discipline.calc_course_length(1, specialty), 0)
+
+    def test_get_related_specialties_ids(self):
+        specialties = SpecialtyFactory.create_batch(2)
+        discipline = DisciplineFactory()
+
+        for specialty in specialties:
+            theme = ThemeFactory(discipline=discipline)
+            theme.specialties.add(specialty)
+
+        self.assertEquals(
+            list(discipline.related_specialties_ids),
+            [s.id for s in specialties]
+        )

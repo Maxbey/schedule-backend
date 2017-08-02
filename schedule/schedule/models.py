@@ -16,6 +16,12 @@ class Discipline(BaseScheduleModel):
     full_name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=40)
 
+    @property
+    def related_specialties_ids(self):
+        return self.themes.values_list(
+            'specialties', flat=True
+        ).distinct()
+
     def calc_course_length(self, term, specialty):
         themes = self.themes.filter(
             term=term, specialties__in=[specialty]
@@ -39,11 +45,15 @@ class Specialty(BaseScheduleModel):
 
     @property
     def disciplines(self):
-        ids = self.themes.values_list(
-            'discipline', flat=True
-        ).distinct()
+        ids = self.related_disciplines_ids
 
         return Discipline.objects.filter(id__in=ids)
+
+    @property
+    def related_disciplines_ids(self):
+        return self.themes.values_list(
+            'discipline', flat=True
+        ).distinct()
 
     def calc_course_length(self, term):
         length = 0
