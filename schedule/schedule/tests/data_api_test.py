@@ -63,7 +63,7 @@ class ScheduleApiTestMixin(object):
             'troops': [
                 self.serialize_troop(troop) for troop in specialty.troops.all()
             ],
-            'disciplines': self.get_ids(specialty.disciplines.all())
+            'disciplines': self.get_ids(specialty.disciplines)
         }
 
     def serialize_discipline(self, discipline):
@@ -72,7 +72,7 @@ class ScheduleApiTestMixin(object):
             'full_name': discipline.full_name,
             'short_name': discipline.short_name,
 
-            'specialties': self.get_ids(discipline.specialties.all()),
+            'specialties': list(discipline.related_specialties_ids),
             'themes': [
                 self.serialize_theme(theme)
                 for theme in discipline.themes.all()
@@ -95,7 +95,8 @@ class ScheduleApiTestMixin(object):
             'type_name': theme.type.name,
             'previous_themes': self.get_ids(theme.previous_themes.all()),
             'teachers': self.get_ids(theme.teachers.all()),
-            'audiences': self.get_ids(theme.audiences.all())
+            'audiences': self.get_ids(theme.audiences.all()),
+            'specialties': self.get_ids(theme.specialties.all())
         }
 
     def serialize_teacher(self, teacher):
@@ -134,7 +135,9 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
 
     def test_get_list(self):
         for specialty in self.specialties:
-            specialty.disciplines.set(self.disciplines)
+            for discipline in self.disciplines:
+                theme = ThemeFactory(discipline=discipline)
+                theme.specialties.add(specialty)
 
         response = self.authorize_client(self.admin).get(self.url)
 
@@ -165,12 +168,9 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
 
     def test_creation(self):
         count_before = Specialty.objects.count()
-        disciplines = DisciplineFactory.create_batch(2)
-        disciplines_ids = self.get_ids(disciplines)
 
         payload = {
-            'code': '420700',
-            'disciplines': disciplines_ids
+            'code': '420700'
         }
 
         response = self.authorize_client(self.admin).post(
@@ -183,17 +183,13 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(response_data, {
             'code': payload['code'],
             'troops': [],
-            'disciplines': disciplines_ids
+            'disciplines': []
         })
 
         self.assertEquals(count_before + 1, Specialty.objects.count())
         self.assertEquals(
             Specialty.objects.get(pk=id).code,
             payload['code']
-        )
-        self.assertEquals(
-            list(Specialty.objects.get(pk=id).disciplines.all()),
-            disciplines
         )
 
 
@@ -270,20 +266,18 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
 
         self.disciplines = DisciplineFactory.create_batch(2)
         self.specialties = SpecialtyFactory.create_batch(2)
-        self.themes = ThemeFactory.create_batch(
-            2, discipline=self.disciplines[0]
-        )
+
+        for discipline in self.disciplines:
+            for specialty in self.specialties:
+                theme = ThemeFactory(discipline=discipline)
+                theme.specialties.add(specialty)
 
     def test_get_list(self):
-        for discipline in self.disciplines:
-            discipline.specialties.set(self.specialties)
-
         response = self.authorize_client(self.admin).get(self.url)
         expected_response = [
             self.serialize_discipline(discipline)
             for discipline in self.disciplines
         ]
-
         self.assertEquals(response.status_code, 200)
         self.assertEquals(
             response.json(),
@@ -306,13 +300,10 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
 
     def test_creation(self):
         count_before = Discipline.objects.count()
-        specialties = SpecialtyFactory.create_batch(2)
-        specialties_ids = self.get_ids(specialties)
 
         payload = {
             'full_name': 'some long name',
             'short_name': 'short name',
-            'specialties': specialties_ids
         }
 
         response = self.authorize_client(self.admin).post(
@@ -326,7 +317,7 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(response_data, {
             'full_name': payload['full_name'],
             'short_name': payload['short_name'],
-            'specialties': specialties_ids,
+            'specialties': [],
             'themes': []
         })
 
@@ -334,11 +325,6 @@ class DisciplineApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(
             Discipline.objects.get(pk=id).full_name,
             payload['full_name']
-        )
-
-        self.assertEquals(
-            list(Discipline.objects.get(pk=id).specialties.all()),
-            specialties
         )
 
 
@@ -396,6 +382,7 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
         theme_type = ThemeTypeFactory()
         teachers = TeacherFactory.create_batch(2)
         audiences = AudienceFactory.create_batch(2)
+        specialties = SpecialtyFactory.create_batch(2)
 
         count_before = Theme.objects.count()
         payload = {
@@ -410,7 +397,8 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
             'type': theme_type.id,
             'previous_themes': self.get_ids(self.prev_themes),
             'teachers': self.get_ids(teachers),
-            'audiences': self.get_ids(audiences)
+            'audiences': self.get_ids(audiences),
+            'specialties': self.get_ids(specialties)
         }
 
         response = self.authorize_client(self.admin).post(
@@ -423,26 +411,32 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
         payload['type_name'] = theme_type.name
 
         self.assertEquals(response.status_code, 201)
+
         self.assertEquals(response_data, payload)
 
         self.assertEquals(count_before + 1, Theme.objects.count())
+        created_theme = Theme.objects.get(pk=id)
+
         self.assertEquals(
             Theme.objects.get(pk=id).name,
             payload['name']
         )
 
         self.assertEquals(
-            list(Theme.objects.get(pk=id).previous_themes.all()),
+            list(created_theme.previous_themes.all()),
             self.prev_themes
         )
         self.assertEquals(
-            list(Theme.objects.get(pk=id).teachers.all()),
+            list(created_theme.teachers.all()),
             teachers
         )
-
         self.assertEquals(
-            list(Theme.objects.get(pk=id).audiences.all()),
+            list(created_theme.audiences.all()),
             audiences
+        )
+        self.assertEquals(
+            list(created_theme.specialties.all()),
+            specialties
         )
 
 

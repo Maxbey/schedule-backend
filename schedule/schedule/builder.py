@@ -279,7 +279,9 @@ class ScheduleBuilder(object):
                 ).exists():
                     hours += theme.self_education_hours
 
-            course_length = discipline.calc_course_length(troop.term)
+            course_length = discipline.calc_course_length(
+                troop.term, troop.specialty
+            )
             if not course_length:
                 continue
 

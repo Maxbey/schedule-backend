@@ -12,14 +12,53 @@ class BaseScheduleModel(models.Model):
         abstract = True
 
 
+class Discipline(BaseScheduleModel):
+    full_name = models.CharField(max_length=255)
+    short_name = models.CharField(max_length=40)
+
+    @property
+    def related_specialties_ids(self):
+        return self.themes.values_list(
+            'specialties', flat=True
+        ).distinct()
+
+    def calc_course_length(self, term, specialty):
+        themes = self.themes.filter(
+            term=term, specialties__in=[specialty]
+        )
+        if not themes.exists():
+            return 0
+
+        duration = themes.aggregate(Sum('duration'))['duration__sum']
+        self_ed = themes.aggregate(
+            Sum('self_education_hours')
+        )['self_education_hours__sum']
+
+        return duration + self_ed
+
+    def __unicode__(self):
+        return self.full_name
+
+
 class Specialty(BaseScheduleModel):
     code = models.CharField(max_length=30)
 
+    @property
+    def disciplines(self):
+        ids = self.related_disciplines_ids
+
+        return Discipline.objects.filter(id__in=ids)
+
+    @property
+    def related_disciplines_ids(self):
+        return self.themes.values_list(
+            'discipline', flat=True
+        ).distinct()
+
     def calc_course_length(self, term):
         length = 0
-
-        for discipline in self.disciplines.all():
-            length += discipline.calc_course_length(term)
+        for discipline in self.disciplines:
+            length += discipline.calc_course_length(term, self)
 
         return length
 
@@ -40,33 +79,14 @@ class Troop(BaseScheduleModel):
     day = models.PositiveSmallIntegerField(choices=DAY_CHOICES)
     term = models.PositiveSmallIntegerField()
 
-    specialty = models.ForeignKey(Specialty, related_name='troops')
+    specialty = models.ForeignKey(Specialty)
+
+    class Meta:
+        default_related_name = 'troops'
+        ordering = ['code']
 
     def __unicode__(self):
         return self.code
-
-
-class Discipline(BaseScheduleModel):
-    full_name = models.CharField(max_length=255)
-    short_name = models.CharField(max_length=40)
-
-    specialties = models.ManyToManyField(Specialty, related_name='disciplines')
-
-    def calc_course_length(self, term):
-        themes = self.themes.filter(term=term)
-
-        if not themes.exists():
-            return 0
-
-        duration = themes.aggregate(Sum('duration'))['duration__sum']
-        self_ed = themes.aggregate(
-            Sum('self_education_hours')
-        )['self_education_hours__sum']
-
-        return duration + self_ed
-
-    def __unicode__(self):
-        return self.full_name
 
 
 class ThemeType(BaseScheduleModel):
@@ -93,13 +113,14 @@ class Theme(BaseScheduleModel):
 
     audiences_count = models.PositiveSmallIntegerField()
     teachers_count = models.PositiveSmallIntegerField()
-
-    discipline = models.ForeignKey(Discipline, related_name='themes')
-    type = models.ForeignKey(
-        ThemeType, related_name='themes',
-        on_delete=models.SET_NULL, null=True
-    )
+    specialties = models.ManyToManyField(Specialty)
+    discipline = models.ForeignKey(Discipline)
+    type = models.ForeignKey(ThemeType, on_delete=models.SET_NULL, null=True)
     previous_themes = models.ManyToManyField('self', symmetrical=False)
+
+    class Meta:
+        default_related_name = 'themes'
+        ordering = ['number']
 
     def __unicode__(self):
         return '%s %s' % (self.number, self.name)
@@ -110,7 +131,10 @@ class Teacher(BaseScheduleModel):
     military_rank = models.CharField(max_length=100)
     work_hours_limit = models.PositiveIntegerField()
 
-    themes = models.ManyToManyField(Theme, related_name='teachers')
+    themes = models.ManyToManyField(Theme)
+
+    class Meta:
+        default_related_name = 'teachers'
 
     def __unicode__(self):
         return self.name
@@ -120,7 +144,10 @@ class Audience(BaseScheduleModel):
     description = models.CharField(max_length=255)
     location = models.CharField(max_length=40)
 
-    themes = models.ManyToManyField(Theme, related_name='audiences')
+    themes = models.ManyToManyField(Theme)
+
+    class Meta:
+        default_related_name = 'audiences'
 
     def __unicode__(self):
         return self.location
@@ -130,13 +157,16 @@ class Lesson(BaseScheduleModel):
     date_of = models.DateField()
     initial_hour = models.PositiveSmallIntegerField()
 
-    troop = models.ForeignKey(Troop, related_name='lessons')
-    theme = models.ForeignKey(Theme, related_name='lessons')
+    troop = models.ForeignKey(Troop)
+    theme = models.ForeignKey(Theme)
 
-    teachers = models.ManyToManyField(Teacher, related_name='lessons')
-    audiences = models.ManyToManyField(Audience, related_name='lessons')
+    teachers = models.ManyToManyField(Teacher)
+    audiences = models.ManyToManyField(Audience)
 
     self_education = models.BooleanField(default=False)
+
+    class Meta:
+        default_related_name = 'lessons'
 
     def __unicode__(self):
         discipline_name = self.theme.discipline.short_name

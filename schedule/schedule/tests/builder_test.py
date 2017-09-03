@@ -141,8 +141,7 @@ class ScheduleBuilderTest(TestCase):
         disciplines = DisciplineFactory.create_batch(3)
 
         for discipline in disciplines:
-            discipline.specialties.set([specialty])
-            self.create_course(term, discipline, 20)
+            self.create_course(term, discipline, specialty, 20)
 
         self.add_load_for_troop(troop, disciplines[2], 3)
         self.add_load_for_troop(troop, disciplines[0], 6)
@@ -271,11 +270,13 @@ class ScheduleBuilderTest(TestCase):
             expected
         )
 
-    def create_course(self, term, discipline, hours):
-        ThemeFactory.create_batch(
+    def create_course(self, term, discipline, specialty, hours):
+        themes = ThemeFactory.create_batch(
             hours / 2, duration=2, discipline=discipline, term=term,
             self_education_hours=1
         )
+        for theme in themes:
+            theme.specialties.set([specialty])
 
     def add_load_for_troop(self, troop, discipline, lessons_count):
         themes = discipline.themes.filter(term=troop.term)

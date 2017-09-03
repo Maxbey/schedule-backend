@@ -31,7 +31,7 @@ class SpecialtySerializer(serializers.ModelSerializer):
 
     troops = TroopSerializer(read_only=True, many=True)
     disciplines = serializers.PrimaryKeyRelatedField(
-        queryset=Discipline.objects, many=True, required=False
+        read_only=True, source='related_disciplines_ids'
     )
 
     class Meta:
@@ -75,6 +75,10 @@ class ThemeSerializer(serializers.ModelSerializer):
         queryset=Audience.objects, many=True
     )
 
+    specialties = serializers.PrimaryKeyRelatedField(
+        queryset=Specialty.objects, many=True
+    )
+
     class Meta:
         model = Theme
         exclude = [
@@ -87,10 +91,10 @@ class DisciplineSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField()
     short_name = serializers.CharField()
 
-    specialties = serializers.PrimaryKeyRelatedField(
-        queryset=Specialty.objects, many=True, required=False
-    )
     themes = ThemeSerializer(read_only=True, many=True)
+    specialties = serializers.PrimaryKeyRelatedField(
+        read_only=True, source='related_specialties_ids'
+    )
 
     class Meta:
         model = Discipline
@@ -221,7 +225,7 @@ class TroopProgressStatisticsSerializer(serializers.Serializer):
             else:
                 hours += lesson.theme.duration
 
-        course_length = discipline.calc_course_length(troop.term)
+        course_length = discipline.calc_course_length(troop.term, troop.specialty)
 
         if not course_length:
             return 1
