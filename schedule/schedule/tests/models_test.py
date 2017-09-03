@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from ..factories import DisciplineFactory, ThemeFactory, SpecialtyFactory
+from ..factories import DisciplineFactory, ThemeFactory, SpecialtyFactory, TeacherFactory
+from ..models import Theme, TeacherTheme
 
 
 class SpecialtyModelTest(TestCase):
@@ -74,3 +75,29 @@ class DisciplineModelTest(TestCase):
             list(discipline.related_specialties_ids),
             [s.id for s in specialties]
         )
+
+
+class ThemeModelTest(TestCase):
+    def test_set_teachers(self):
+        theme = ThemeFactory()
+
+        teachers_main = TeacherFactory.create_batch(2)
+        teachers_alternative = TeacherFactory.create_batch(2)
+
+        Theme.set_teachers(theme, teachers_main, teachers_alternative)
+
+        for teacher in teachers_main:
+            self.assertFalse(teacher.teachertheme_set.first().alternative)
+
+        for teacher in teachers_alternative:
+            self.assertTrue(teacher.teachertheme_set.first().alternative)
+
+    def test_get_teachers(self):
+        theme = ThemeFactory()
+        teachers = TeacherFactory.create_batch(2)
+
+        TeacherTheme.objects.create(theme=theme, alternative=False, teacher=teachers[0])
+        TeacherTheme.objects.create(theme=theme, alternative=True, teacher=teachers[1])
+
+        self.assertEquals(list(theme.teachers_main), [teachers[0]])
+        self.assertEquals(list(theme.teachers_alternative), [teachers[1]])

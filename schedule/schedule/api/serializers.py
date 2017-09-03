@@ -68,7 +68,10 @@ class ThemeSerializer(serializers.ModelSerializer):
         queryset=Theme.objects, many=True, required=False
     )
 
-    teachers = serializers.PrimaryKeyRelatedField(
+    teachers_main = serializers.PrimaryKeyRelatedField(
+        queryset=Teacher.objects, many=True
+    )
+    teachers_alternative = serializers.PrimaryKeyRelatedField(
         queryset=Teacher.objects, many=True
     )
     audiences = serializers.PrimaryKeyRelatedField(
@@ -83,8 +86,27 @@ class ThemeSerializer(serializers.ModelSerializer):
         model = Theme
         exclude = [
             'created_at',
-            'updated_at'
+            'updated_at',
+            'teachers'
         ]
+
+    def create(self, validated_data):
+        teachers_main = validated_data.pop('teachers_main')
+        teachers_alternative = validated_data.pop('teachers_alternative')
+
+        instance = super(ThemeSerializer, self).create(validated_data)
+        self.Meta.model.set_teachers(instance, teachers_main, teachers_alternative)
+
+        return instance
+
+    def update(self, instance, validated_data):
+        teachers_main = validated_data.pop('teachers_main')
+        teachers_alternative = validated_data.pop('teachers_alternative')
+
+        instance = super(ThemeSerializer, self).update(instance, validated_data)
+        self.Meta.model.set_teachers(instance, teachers_main, teachers_alternative)
+
+        return instance
 
 
 class DisciplineSerializer(serializers.ModelSerializer):
@@ -112,7 +134,6 @@ class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
         exclude = [
-            'themes',
             'created_at',
             'updated_at'
         ]
@@ -125,7 +146,6 @@ class AudienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Audience
         exclude = [
-            'themes',
             'created_at',
             'updated_at'
         ]

@@ -97,6 +97,35 @@ class ThemeType(BaseScheduleModel):
         return '%s' % self.name
 
 
+class Teacher(BaseScheduleModel):
+    name = models.CharField(max_length=255)
+    military_rank = models.CharField(max_length=100)
+    work_hours_limit = models.PositiveIntegerField()
+
+    class Meta:
+        default_related_name = 'teachers'
+
+    def __unicode__(self):
+        return self.name
+
+
+class Audience(BaseScheduleModel):
+    description = models.CharField(max_length=255)
+    location = models.CharField(max_length=40)
+
+    class Meta:
+        default_related_name = 'audiences'
+
+    def __unicode__(self):
+        return self.location
+
+
+class TeacherTheme(models.Model):
+    teacher = models.ForeignKey(Teacher)
+    theme = models.ForeignKey('Theme')
+    alternative = models.BooleanField(default=False)
+
+
 class Theme(BaseScheduleModel):
     DURATION_CHOICES = (
         (1, 1),
@@ -111,6 +140,9 @@ class Theme(BaseScheduleModel):
     self_education_hours = models.PositiveSmallIntegerField(default=0)
     duration = models.PositiveSmallIntegerField(choices=DURATION_CHOICES)
 
+    audiences = models.ManyToManyField(Audience)
+    teachers = models.ManyToManyField(Teacher, through=TeacherTheme)
+
     audiences_count = models.PositiveSmallIntegerField()
     teachers_count = models.PositiveSmallIntegerField()
     specialties = models.ManyToManyField(Specialty)
@@ -118,39 +150,31 @@ class Theme(BaseScheduleModel):
     type = models.ForeignKey(ThemeType, on_delete=models.SET_NULL, null=True)
     previous_themes = models.ManyToManyField('self', symmetrical=False)
 
+    @property
+    def teachers_main(self):
+        return self.teachers.filter(teachertheme__alternative=False)
+
+    @property
+    def teachers_alternative(self):
+        return self.teachers.filter(teachertheme__alternative=True)
+
+    @staticmethod
+    def set_teachers(theme, main_teachers, alternative_teachers):
+        theme.teachers.clear()
+        through = theme.teachers.through
+
+        for teacher in main_teachers:
+            through.objects.create(teacher=teacher, theme=theme, alternative=False)
+
+        for teacher in alternative_teachers:
+            through.objects.create(teacher=teacher, theme=theme, alternative=True)
+
     class Meta:
         default_related_name = 'themes'
         ordering = ['number']
 
     def __unicode__(self):
         return '%s %s' % (self.number, self.name)
-
-
-class Teacher(BaseScheduleModel):
-    name = models.CharField(max_length=255)
-    military_rank = models.CharField(max_length=100)
-    work_hours_limit = models.PositiveIntegerField()
-
-    themes = models.ManyToManyField(Theme)
-
-    class Meta:
-        default_related_name = 'teachers'
-
-    def __unicode__(self):
-        return self.name
-
-
-class Audience(BaseScheduleModel):
-    description = models.CharField(max_length=255)
-    location = models.CharField(max_length=40)
-
-    themes = models.ManyToManyField(Theme)
-
-    class Meta:
-        default_related_name = 'audiences'
-
-    def __unicode__(self):
-        return self.location
 
 
 class Lesson(BaseScheduleModel):

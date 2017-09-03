@@ -3,7 +3,7 @@ from unittest import TestCase
 from django.conf import settings
 from django.utils.timezone import now
 
-from ..models import Lesson
+from ..models import Lesson, Theme
 from ..builder import ScheduleBuilder
 from ..factories import LessonFactory, AudienceFactory, TeacherFactory, \
     ThemeFactory, TroopFactory, SpecialtyFactory, DisciplineFactory
@@ -44,7 +44,7 @@ class ScheduleBuilderTest(TestCase):
     def test_find_free_teachers_should_be_found(self):
         teachers = TeacherFactory.create_batch(4)
         theme = ThemeFactory()
-        theme.teachers.set(teachers)
+        Theme.set_teachers(theme, teachers, [])
         lessons = LessonFactory.create_batch(3)
         lessons[1].teachers.set(teachers[0:2])
 
@@ -57,7 +57,7 @@ class ScheduleBuilderTest(TestCase):
     def test_find_free_teachers_should_not_be_found(self):
         teachers = TeacherFactory.create_batch(4)
         theme = ThemeFactory()
-        theme.teachers.set(teachers)
+        Theme.set_teachers(theme, teachers, [])
         lessons = LessonFactory.create_batch(3)
         lessons[1].teachers.set(teachers[0:2])
         lessons[2].teachers.set(teachers[2:4])
