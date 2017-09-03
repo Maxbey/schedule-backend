@@ -21,7 +21,7 @@ services:
       - DATABASE_URL=postgres://postgres@db/postgres
       - SECRET_KEY=somesecretvalue
       - DJANGO_CONFIGURATION=Production
-      - DJANGO_SETTINGS_MODULE=app.settings.settings
+      - DJANGO_SETTINGS_MODULE=app.settings.production
       - RAVEN_DSN=http://public:secret@sentry:9000/2
     expose:
       - "8000"
@@ -43,7 +43,7 @@ services:
       - DATABASE_URL=postgres://postgres@db/postgres
       - SECRET_KEY=somesecretvalue
       - DJANGO_CONFIGURATION=Production
-      - DJANGO_SETTINGS_MODULE=app.settings.settings
+      - DJANGO_SETTINGS_MODULE=app.settings.production
       - RAVEN_DSN=http://public:secret@sentry:9000/2
     depends_on:
       - db
