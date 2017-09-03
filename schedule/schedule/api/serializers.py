@@ -225,7 +225,7 @@ class TroopProgressStatisticsSerializer(serializers.Serializer):
             else:
                 hours += lesson.theme.duration
 
-        course_length = discipline.calc_course_length(troop.term)
+        course_length = discipline.calc_course_length(troop.term, troop.specialty)
 
         if not course_length:
             return 1

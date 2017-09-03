@@ -70,11 +70,13 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
         self.discipline_one = DisciplineFactory()
         self.discipline_two = DisciplineFactory()
 
-        specialty.disciplines.set([self.discipline_one, self.discipline_two])
-
         for i in range(6):
-            ThemeFactory(discipline=self.discipline_one, duration=4, term=term)
-            ThemeFactory(discipline=self.discipline_two, duration=2, term=term)
+            ThemeFactory(
+                discipline=self.discipline_one, duration=4, term=term
+            ).specialties.set([specialty])
+            ThemeFactory(
+                discipline=self.discipline_two, duration=2, term=term
+            ).specialties.set([specialty])
 
         self.create_lessons(self.troop_one, self.discipline_one, 2)
         self.create_lessons(self.troop_one, self.discipline_two, 4)
@@ -168,16 +170,14 @@ class ScheduleApiTest(ScheduleApiTestMixin, APITestCase):
     def test_schedule_create(self, build_schedule, cache):
         specialty = SpecialtyFactory()
         troop = TroopFactory(specialty=specialty, term=2)
-
         discipline = DisciplineFactory()
-        discipline.specialties.set([specialty])
-
         themes = ThemeFactory.create_batch(
             2, duration=6, term=2, discipline=discipline,
             self_education_hours=1
         )
 
         for theme in themes:
+            theme.specialties.set([specialty])
             LessonFactory(theme=theme, troop=troop)
 
         payload = {
