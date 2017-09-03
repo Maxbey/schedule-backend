@@ -94,7 +94,8 @@ class ScheduleApiTestMixin(object):
             'type': theme.type.id,
             'type_name': theme.type.name,
             'previous_themes': self.get_ids(theme.previous_themes.all()),
-            'teachers': self.get_ids(theme.teachers.all()),
+            'teachers_main': self.get_ids(theme.teachers_main),
+            'teachers_alternative': self.get_ids(theme.teachers_alternative),
             'audiences': self.get_ids(theme.audiences.all()),
             'specialties': self.get_ids(theme.specialties.all())
         }
@@ -211,7 +212,7 @@ class TroopApiTest(ScheduleApiTestMixin, APITestCase):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(
             response.json(),
-            expected_response
+            sorted(expected_response, key=lambda troop: troop['code'])
         )
 
     def test_searching(self):
@@ -343,7 +344,7 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
 
         for theme in self.themes:
             theme.previous_themes.set(self.prev_themes)
-            theme.teachers.set(teachers)
+            Theme.set_teachers(theme, teachers, [])
             theme.audiences.set(audiences)
 
         response = self.authorize_client(self.admin).get(self.url)
@@ -380,7 +381,8 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
     def test_creation(self):
         discipline = DisciplineFactory()
         theme_type = ThemeTypeFactory()
-        teachers = TeacherFactory.create_batch(2)
+        teachers_main = TeacherFactory.create_batch(2)
+        teachers_alternative = TeacherFactory.create_batch(2)
         audiences = AudienceFactory.create_batch(2)
         specialties = SpecialtyFactory.create_batch(2)
 
@@ -396,7 +398,8 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
             'discipline': discipline.id,
             'type': theme_type.id,
             'previous_themes': self.get_ids(self.prev_themes),
-            'teachers': self.get_ids(teachers),
+            'teachers_main': self.get_ids(teachers_main),
+            'teachers_alternative': self.get_ids(teachers_alternative),
             'audiences': self.get_ids(audiences),
             'specialties': self.get_ids(specialties)
         }
@@ -427,8 +430,12 @@ class ThemeApiTest(ScheduleApiTestMixin, APITestCase):
             self.prev_themes
         )
         self.assertEquals(
-            list(created_theme.teachers.all()),
-            teachers
+            list(created_theme.teachers_main),
+            teachers_main
+        )
+        self.assertEquals(
+            list(created_theme.teachers_alternative),
+            teachers_alternative
         )
         self.assertEquals(
             list(created_theme.audiences.all()),

@@ -150,7 +150,10 @@ class TroopProgressStatisticsApiTest(ScheduleApiTestMixin, APITestCase):
             self.url
         )
 
-        self.assertEquals(response.json(), expected)
+        self.assertEquals(
+            response.json(),
+            sorted(expected, key=lambda troop: troop['code'])
+        )
 
     def create_lessons(self, troop, discipline, count):
         themes = discipline.themes.filter(term=troop.term)[:count]
