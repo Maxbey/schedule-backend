@@ -132,7 +132,7 @@ class ScheduleBuilder(object):
             )
 
             found_teachers = self.find_free_teachers(
-                theme, lessons_in_same_time
+                theme.teachers.all(), lessons_in_same_time
             )
 
             if not len(found_teachers):
@@ -192,11 +192,17 @@ class ScheduleBuilder(object):
             teachers_not_enough = False
             audiences_not_enough = False
 
-            found_teachers = self.find_free_teachers(
-                theme, lessons_in_same_time
+            main_teachers = self.find_free_teachers(
+                theme.teachers_main, lessons_in_same_time
             )
+            alternative_teachers = []
 
-            if len(found_teachers) < theme.teachers_count:
+            if len(main_teachers) < theme.teachers_count:
+                alternative_teachers = self.find_free_teachers(
+                    theme.teachers_alternative, lessons_in_same_time
+                )
+
+            if len(main_teachers) + len(alternative_teachers) < theme.teachers_count:
                 if len(themes) > 1:
                     themes.pop(0)
                     continue
@@ -215,9 +221,11 @@ class ScheduleBuilder(object):
                 audiences_not_enough = True
 
             if not teachers_not_enough:
-                teachers = self.sort_teachers_by_priority(
-                    found_teachers
-                )[0:theme.teachers_count]
+                sorted_main_teachers = self.sort_teachers_by_priority(main_teachers)
+                sorted_alternative_teachers = self.sort_teachers_by_priority(alternative_teachers)
+
+                teachers = (sorted_main_teachers +
+                            sorted_alternative_teachers)[0:theme.teachers_count]
             else:
                 teachers = []
 
@@ -241,7 +249,7 @@ class ScheduleBuilder(object):
         return [
             theme for theme in themes
             if not (theme.duration + initial_hour > settings.LESSON_HOURS)
-            and self.check_prev_themes(theme, troop)
+               and self.check_prev_themes(theme, troop)
         ]
 
     def calc_teacher_ratio(self, teacher):
@@ -264,7 +272,6 @@ class ScheduleBuilder(object):
 
     def get_disciplines_by_priority(self, troop):
         with_ratio = []
-
         for discipline in troop.specialty.disciplines.all():
             hours = 0
 
@@ -354,11 +361,11 @@ class ScheduleBuilder(object):
 
         return True
 
-    def find_free_teachers(self, theme, lessons_in_same_time):
-        free = []
+    def find_free_teachers(self, teachers, lessons_in_same_time):
+        free_teachers = []
 
-        for teacher in theme.teachers.all():
+        for teacher in teachers:
             if self.is_teacher_free(teacher, lessons_in_same_time):
-                free.append(teacher)
+                free_teachers.append(teacher)
 
-        return free
+        return free_teachers

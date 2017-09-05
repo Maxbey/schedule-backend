@@ -42,17 +42,21 @@ class ScheduleBuilderTest(TestCase):
         self.assertFalse(len(result))
 
     def test_find_free_teachers_should_be_found(self):
-        teachers = TeacherFactory.create_batch(4)
+        teachers = TeacherFactory.create_batch(5)
         theme = ThemeFactory()
-        Theme.set_teachers(theme, teachers, [])
+        Theme.set_teachers(theme, teachers[0:4], [teachers[-1]])
         lessons = LessonFactory.create_batch(3)
         lessons[1].teachers.set(teachers[0:2])
 
-        result = self.builder.find_free_teachers(
-            theme, Lesson.objects.all()
+        main_result = self.builder.find_free_teachers(
+            theme.teachers_main, Lesson.objects.all()
+        )
+        alternative_result = self.builder.find_free_teachers(
+            theme.teachers_alternative, Lesson.objects.all()
         )
 
-        self.assertEquals(result, teachers[2:4])
+        self.assertEquals(main_result, teachers[2:4])
+        self.assertEquals(alternative_result, [teachers[-1]])
 
     def test_find_free_teachers_should_not_be_found(self):
         teachers = TeacherFactory.create_batch(4)
@@ -63,7 +67,7 @@ class ScheduleBuilderTest(TestCase):
         lessons[2].teachers.set(teachers[2:4])
 
         result = self.builder.find_free_teachers(
-            theme, Lesson.objects.all()
+            theme.teachers.all(), Lesson.objects.all()
         )
 
         self.assertFalse(len(result))
