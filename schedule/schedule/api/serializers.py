@@ -1,4 +1,6 @@
 from django.core.cache import cache
+from django.conf import settings
+
 from rest_framework import serializers
 
 from ..tasks import build_schedule
@@ -40,6 +42,34 @@ class SpecialtySerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
+
+
+class SpecialtyCourseLengthSerializer(serializers.Serializer):
+    course_length = serializers.SerializerMethodField()
+
+    def get_course_length(self, specialty):
+        struct = []
+
+        for discipline in specialty.disciplines:
+            discipline_struct = {
+                'discipline': discipline.full_name,
+                'terms': []
+            }
+
+            for term in xrange(1, settings.TERMS_COUNT + 1):
+                durations = discipline.get_courses_length(term, specialty)
+                if durations == (0, 0):
+                    continue
+
+                discipline_struct['terms'].append({
+                    'term': term,
+                    'lessons': durations[0],
+                    'self_education': durations[1]
+                })
+
+            struct.append(discipline_struct)
+
+        return struct
 
 
 class ThemeSerializer(serializers.ModelSerializer):
@@ -95,7 +125,8 @@ class ThemeSerializer(serializers.ModelSerializer):
         teachers_alternative = validated_data.pop('teachers_alternative')
 
         instance = super(ThemeSerializer, self).create(validated_data)
-        self.Meta.model.set_teachers(instance, teachers_main, teachers_alternative)
+        self.Meta.model.set_teachers(instance, teachers_main,
+                                     teachers_alternative)
 
         return instance
 
@@ -103,8 +134,12 @@ class ThemeSerializer(serializers.ModelSerializer):
         teachers_main = validated_data.pop('teachers_main')
         teachers_alternative = validated_data.pop('teachers_alternative')
 
-        instance = super(ThemeSerializer, self).update(instance, validated_data)
-        self.Meta.model.set_teachers(instance, teachers_main, teachers_alternative)
+        instance = super(ThemeSerializer, self).update(
+            instance, validated_data
+        )
+        self.Meta.model.set_teachers(
+            instance, teachers_main, teachers_alternative
+        )
 
         return instance
 
@@ -245,7 +280,8 @@ class TroopProgressStatisticsSerializer(serializers.Serializer):
             else:
                 hours += lesson.theme.duration
 
-        course_length = discipline.calc_course_length(troop.term, troop.specialty)
+        course_length = discipline.calc_course_length(troop.term,
+                                                      troop.specialty)
 
         if not course_length:
             return 1

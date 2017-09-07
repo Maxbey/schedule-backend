@@ -153,6 +153,43 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
             expected_response
         )
 
+    def test_course_length(self):
+        url_template = self.url + '%i/course_length/'
+        specialty = SpecialtyFactory()
+        disciplines = DisciplineFactory.create_batch(2)
+
+        for discipline in disciplines:
+            for term in xrange(1, 3):
+                theme = ThemeFactory(
+                    discipline=discipline, duration=term*2,
+                    self_education_hours=term*3, term=term
+                )
+                theme.specialties.add(specialty)
+
+        expected_response = {'course_length': [
+            {
+                'discipline': disciplines[0].full_name,
+                'terms': [
+                    {'term': 1, 'lessons': 2, 'self_education': 3},
+                    {'term': 2, 'lessons': 4, 'self_education': 6}
+                ]
+            },
+            {
+                'discipline': disciplines[1].full_name,
+                'terms': [
+                    {'term': 1, 'lessons': 2, 'self_education': 3},
+                    {'term': 2, 'lessons': 4, 'self_education': 6}
+                ]
+            }
+        ]}
+
+        response = self.authorize_client(self.admin).get(
+            url_template % specialty.id
+        )
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), expected_response)
+
     def test_searching(self):
         specialty = SpecialtyFactory(code='specific')
         url = self.url + '?search=specif'

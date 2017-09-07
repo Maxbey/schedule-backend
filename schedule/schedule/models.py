@@ -23,18 +23,22 @@ class Discipline(BaseScheduleModel):
         ).distinct()
 
     def calc_course_length(self, term, specialty):
+        durations = self.get_courses_length(term, specialty)
+        return durations[0] + durations[1]
+
+    def get_courses_length(self, term, specialty):
         themes = self.themes.filter(
             term=term, specialties__in=[specialty]
         )
         if not themes.exists():
-            return 0
+            return 0, 0
 
         duration = themes.aggregate(Sum('duration'))['duration__sum']
         self_ed = themes.aggregate(
             Sum('self_education_hours')
         )['self_education_hours__sum']
 
-        return duration + self_ed
+        return duration, self_ed
 
     def __unicode__(self):
         return self.full_name
