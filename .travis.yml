@@ -1,0 +1,13 @@
+branches:
+  only:
+  - master
+  - develop
+
+sudo: required
+
+language: python
+
+install:
+  - make testinstall
+script:
+  - make test
