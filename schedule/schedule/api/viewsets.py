@@ -6,7 +6,7 @@ from rest_framework import filters
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import list_route
+from rest_framework.decorators import list_route, detail_route
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -17,14 +17,17 @@ from ..models import Specialty, Troop, Discipline, Theme, Teacher, Audience, \
 from .serializers import SpecialtySerializer, TroopSerializer, \
     DisciplineSerializer, ThemeSerializer, TeacherSerializer, \
     AudienceSerializer, ThemeTypeSerializer, BuildScheduleSerializer, \
-    TeacherLoadStatisticsSerializer, TroopProgressStatisticsSerializer
-
+    TeacherLoadStatisticsSerializer, TroopProgressStatisticsSerializer, \
+    SpecialtyCourseLengthSerializer
 from ..exporters import ExcelExporter
 
-
-class BaseScheduleViewSet(viewsets.ModelViewSet):
+class AuthMixin(object):
     permission_classes = [IsAuthenticated, IsAdminUser]
     authentication_classes = [TokenAuthentication]
+
+
+class BaseScheduleViewSet(AuthMixin, viewsets.ModelViewSet):
+    pass
 
 
 class SpecialtyViewSet(BaseScheduleViewSet):
@@ -33,6 +36,13 @@ class SpecialtyViewSet(BaseScheduleViewSet):
 
     filter_backends = [filters.SearchFilter]
     search_fields = ['code']
+
+    @detail_route(methods=['get'])
+    def course_length(self, request, pk):
+        specialty = self.get_object()
+
+        serializer = SpecialtyCourseLengthSerializer(instance=specialty)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TroopViewSet(BaseScheduleViewSet):
@@ -100,10 +110,8 @@ class ExportScheduleViewSet(viewsets.GenericViewSet):
         return response
 
 
-class ScheduleViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    authentication_classes = [TokenAuthentication]
-
+class ScheduleViewSet(AuthMixin, mixins.CreateModelMixin,
+                      viewsets.GenericViewSet):
     serializer_class = BuildScheduleSerializer
     schedule_build_task = 'build_schedule'
 
@@ -132,10 +140,7 @@ class ScheduleViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         return True
 
 
-class TeacherLoadStatisticsViewSet(viewsets.GenericViewSet):
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    authentication_classes = [TokenAuthentication]
-
+class TeacherLoadStatisticsViewSet(AuthMixin, viewsets.GenericViewSet):
     queryset = Teacher.objects.all()
     serializer_class = TeacherLoadStatisticsSerializer
 
@@ -161,12 +166,9 @@ class TeacherLoadStatisticsViewSet(viewsets.GenericViewSet):
         return Response(response_serializer.data)
 
 
-class TroopProgressStatisticsViewSet(mixins.ListModelMixin,
+class TroopProgressStatisticsViewSet(AuthMixin, mixins.ListModelMixin,
                                      mixins.RetrieveModelMixin,
                                      viewsets.GenericViewSet):
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    authentication_classes = [TokenAuthentication]
-
     queryset = Troop.objects.all()
     serializer_class = TroopProgressStatisticsSerializer
 
