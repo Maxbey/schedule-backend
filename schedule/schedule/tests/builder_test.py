@@ -248,7 +248,7 @@ class ScheduleBuilderTest(TestCase):
 
         LessonFactory(troop=troop, theme=theme_two)
 
-        expected_result = [theme_one, theme_three]
+        expected_result = [(theme_one, 0.1), (theme_three, 0.2)]
         result = self.builder.fetch_disciplines_head_themes(
             troop, 2, [
                 (discipline_one, 0.1),
@@ -260,19 +260,18 @@ class ScheduleBuilderTest(TestCase):
 
         self.assertEquals(expected_result, result)
 
-    def test_sort_themes_with_self_ed(self):
-        theme_one = ThemeFactory(self_education_hours=1)
-        theme_two = ThemeFactory(self_education_hours=2)
-        theme_three = ThemeFactory(self_education_hours=0)
+    def test_get_sorted_head_themes(self):
+        theme_one = (ThemeFactory(duration=6), 0.9)
+        theme_two = (ThemeFactory(duration=6), 0.5)
+        theme_three = (ThemeFactory(duration=4), 0.9)
+        theme_four = (ThemeFactory(duration=2), 0.0)
 
-        expected = [theme_two, theme_one]
-
-        self.assertEquals(
-            self.builder.sort_themes_with_self_ed(
-                [theme_one, theme_two, theme_three]
-            ),
-            expected
+        result = self.builder.get_sorted_head_themes(
+            [theme_four, theme_two, theme_three, theme_one]
         )
+        expected_result = [theme_two[0], theme_one[0], theme_three[0], theme_four[0]]
+
+        self.assertEquals(result, expected_result)
 
     def create_course(self, term, discipline, specialty, hours):
         themes = ThemeFactory.create_batch(

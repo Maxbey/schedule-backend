@@ -1,5 +1,4 @@
 from datetime import timedelta
-from random import shuffle
 
 from django.conf import settings
 from django.core.cache import cache
@@ -9,10 +8,8 @@ from .models import Lesson, Troop
 
 class ScheduleBuilder(object):
     def build(self, date, term_length):
-        self_ed_themes_buffer = {}
         for i in range(term_length):
             troop_list = list(Troop.objects.all())
-            shuffle(troop_list)
 
             for troop in troop_list:
                 date = date - timedelta(days=date.weekday())
@@ -40,48 +37,7 @@ class ScheduleBuilder(object):
 
                     hours += theme.duration
 
-                if not str(troop.id) in self_ed_themes_buffer:
-                    self_ed_themes_buffer[str(troop.id)] = []
-
-                self_eds_today = self.sort_themes_with_self_ed(themes_today)
-                self_eds_buffer = self.sort_themes_with_self_ed(
-                    self_ed_themes_buffer[str(troop.id)]
-                )
-
-                self_ed_themes_buffer[str(troop.id)] = self_eds_today \
-                                                       + self_eds_buffer
-
-                while hours != settings.LESSON_HOURS + \
-                        settings.SELF_EDUCATION_HOURS:
-                    lesson_dependencies = self.find_self_ed_dependencies(
-                        self_ed_themes_buffer[str(troop.id)][:],
-                        troop, date, hours
-                    )
-
-                    if lesson_dependencies is None:
-                        break
-
-                    theme, teachers, audiences = lesson_dependencies
-
-                    self.create_lesson(
-                        date, troop, hours, theme,
-                        teachers, audiences, theme.self_education_hours, True
-                    )
-
-                    hours += theme.self_education_hours
-
-                    self.remove_item_by_id(
-                        self_ed_themes_buffer[str(troop.id)],
-                        theme.id
-                    )
-
             date = date + timedelta(weeks=1)
-
-    def remove_item_by_id(self, items, id):
-        for index, item in enumerate(items):
-            if item.id == id:
-                del items[index]
-                break
 
     def create_lesson(self, date_of, troop, initial_hour,
                       theme, teachers, audiences, delta, self_ed=False):
@@ -101,84 +57,20 @@ class ScheduleBuilder(object):
 
         return lesson
 
-    def sort_themes_with_self_ed(self, themes):
-        with_self_ed = [
-            theme for theme in themes
-            if theme.self_education_hours
-        ]
-
-        return sorted(
-            with_self_ed, key=lambda theme: theme.self_education_hours,
-            reverse=True
-        )
-
-    def find_self_ed_dependencies(
-            self, themes, troop, date, initial_hour):
-        max_end_hour = settings.LESSON_HOURS + \
-                       settings.SELF_EDUCATION_HOURS
-        themes = [
-            theme for theme in themes
-            if not initial_hour + theme.self_education_hours > max_end_hour
-        ]
-
-        while True:
-            if not len(themes):
-                return None
-
-            theme = themes[0]
-
-            lessons_in_same_time = self.get_lessons_in_same_time(
-                theme, troop, date, initial_hour
-            )
-
-            found_teachers = self.find_free_teachers(
-                theme.teachers.all(), lessons_in_same_time
-            )
-
-            if not len(found_teachers):
-                if len(themes) > 1:
-                    themes.pop(0)
-                    continue
-
-                found_teachers = []
-
-            found_audiences = self.find_free_audiences(
-                theme, lessons_in_same_time
-            )
-
-            if not len(found_audiences):
-                if len(themes) > 1:
-                    themes.pop(0)
-                    continue
-
-                found_audiences = []
-
-            if not len(found_teachers):
-                teachers = []
-            else:
-                teachers = [self.sort_teachers_by_priority(found_teachers)[0]]
-
-            if not len(found_audiences):
-                audiences = []
-            else:
-                audiences = [found_audiences[0]]
-
-            return theme, teachers, audiences
-
     def find_lesson_dependencies(self, disciplines, troop,
                                  date, initial_hour):
         if disciplines[0][1] == 1:
             return None
 
-        themes = self.fetch_disciplines_head_themes(
-            troop, initial_hour, disciplines
+        themes = self.get_sorted_head_themes(
+            self.fetch_disciplines_head_themes(troop, initial_hour, disciplines)
         )
 
         while True:
             if not len(themes):
                 return None
 
-            theme = themes[0]
+            theme = themes.pop(0)
 
             lessons_in_same_time = self.get_lessons_in_same_time(
                 theme, troop, date, initial_hour
@@ -186,7 +78,6 @@ class ScheduleBuilder(object):
 
             if self.is_theme_parallel(theme, lessons_in_same_time) \
                     and len(themes) > 1:
-                themes.pop(0)
                 continue
 
             teachers_not_enough = False
@@ -204,7 +95,6 @@ class ScheduleBuilder(object):
 
             if len(main_teachers) + len(alternative_teachers) < theme.teachers_count:
                 if len(themes) > 1:
-                    themes.pop(0)
                     continue
 
                 teachers_not_enough = True
@@ -215,7 +105,6 @@ class ScheduleBuilder(object):
 
             if len(found_audiences) < theme.audiences_count:
                 if len(themes) > 1:
-                    themes.pop(0)
                     continue
 
                 audiences_not_enough = True
@@ -236,20 +125,26 @@ class ScheduleBuilder(object):
 
             return theme, teachers, audiences
 
+    def get_sorted_head_themes(self, themes_with_priority):
+        sorted_themes = sorted(
+            themes_with_priority,
+            key=lambda theme: (-theme[0].duration, theme[1])
+        )
+
+        return [theme[0] for theme in sorted_themes]
+
     def fetch_disciplines_head_themes(self, troop, initial_hour, disciplines):
-        themes = []
+        themes_with_priority = []
 
         for discipline in disciplines:
             next_theme = self.get_next_theme(discipline[0], troop)
             if next_theme:
-                themes.append(
-                    next_theme
-                )
+                themes_with_priority.append((next_theme, discipline[1]))
 
         return [
-            theme for theme in themes
-            if not (theme.duration + initial_hour > settings.LESSON_HOURS)
-               and self.check_prev_themes(theme, troop)
+            theme for theme in themes_with_priority
+            if not (theme[0].duration + initial_hour > settings.LESSON_HOURS)
+            and self.check_prev_themes(theme[0], troop)
         ]
 
     def calc_teacher_ratio(self, teacher):
@@ -292,8 +187,13 @@ class ScheduleBuilder(object):
             if not course_length:
                 continue
 
+            ratio = float(hours) / float(course_length)
+
+            if ratio >= 1.0:
+                continue
+
             with_ratio.append(
-                (discipline, float(hours) / float(course_length))
+                (discipline, ratio)
             )
 
         return sorted(with_ratio, key=lambda tup: tup[1])
