@@ -171,14 +171,20 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
                 'discipline': disciplines[0].full_name,
                 'terms': [
                     {'term': 1, 'lessons': 2, 'self_education': 3},
-                    {'term': 2, 'lessons': 4, 'self_education': 6}
+                    {'term': 2, 'lessons': 4, 'self_education': 6},
+                    {'term': 3, 'lessons': 0, 'self_education': 0},
+                    {'term': 4, 'lessons': 0, 'self_education': 0},
+                    {'term': 5, 'lessons': 0, 'self_education': 0}
                 ]
             },
             {
                 'discipline': disciplines[1].full_name,
                 'terms': [
                     {'term': 1, 'lessons': 2, 'self_education': 3},
-                    {'term': 2, 'lessons': 4, 'self_education': 6}
+                    {'term': 2, 'lessons': 4, 'self_education': 6},
+                    {'term': 3, 'lessons': 0, 'self_education': 0},
+                    {'term': 4, 'lessons': 0, 'self_education': 0},
+                    {'term': 5, 'lessons': 0, 'self_education': 0}
                 ]
             }
         ]}
