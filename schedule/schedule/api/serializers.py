@@ -58,8 +58,6 @@ class SpecialtyCourseLengthSerializer(serializers.Serializer):
 
             for term in xrange(1, settings.TERMS_COUNT + 1):
                 durations = discipline.get_courses_length(term, specialty)
-                if durations == (0, 0):
-                    continue
 
                 discipline_struct['terms'].append({
                     'term': term,
