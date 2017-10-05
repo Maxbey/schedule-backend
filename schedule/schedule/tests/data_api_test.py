@@ -174,7 +174,9 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
                     {'term': 2, 'lessons': 4, 'self_education': 6},
                     {'term': 3, 'lessons': 0, 'self_education': 0},
                     {'term': 4, 'lessons': 0, 'self_education': 0},
-                    {'term': 5, 'lessons': 0, 'self_education': 0}
+                    {'term': 5, 'lessons': 0, 'self_education': 0},
+                    {'term': 6, 'lessons': 0, 'self_education': 0},
+                    {'term': 7, 'lessons': 0, 'self_education': 0}
                 ]
             },
             {
@@ -184,7 +186,9 @@ class SpecialtyApiTest(ScheduleApiTestMixin, APITestCase):
                     {'term': 2, 'lessons': 4, 'self_education': 6},
                     {'term': 3, 'lessons': 0, 'self_education': 0},
                     {'term': 4, 'lessons': 0, 'self_education': 0},
-                    {'term': 5, 'lessons': 0, 'self_education': 0}
+                    {'term': 5, 'lessons': 0, 'self_education': 0},
+                    {'term': 6, 'lessons': 0, 'self_education': 0},
+                    {'term': 7, 'lessons': 0, 'self_education': 0}
                 ]
             }
         ]}

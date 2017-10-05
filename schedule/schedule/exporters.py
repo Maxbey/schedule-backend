@@ -11,13 +11,10 @@ class ExcelExporter(object):
         u'Взвод',
         u'9:00 - 10:35',
         u'10:45 - 12:20',
-        u'13:00 - 14:35',
-        u'14:45 - 15:30',
-        u'15:35 - 16:20',
+        u'13:00 - 14:35'
     ]
 
     cells_for_lessons = ['C', 'D', 'E']
-    cells_for_self_eds = ['F', 'G']
 
     @classmethod
     def export(cls, lessons_queryset):
@@ -57,50 +54,29 @@ class ExcelExporter(object):
                             or not len(lesson.audiences.all()):
                         current_format = red_color
 
-                    if not lesson.self_education:
-                        if lesson.theme.duration > 2:
-                            range_template = '%s%i:%s%i'
-                            end_cell = (
-                                (lesson.theme.duration / 2) - (1 - lesson_counter)
-                            )
+                    if lesson.theme.duration > 2:
+                        range_template = '%s%i:%s%i'
+                        end_cell = (
+                            (lesson.theme.duration / 2) - (1 - lesson_counter)
+                        )
 
-                            lesson_range = range_template % (
-                                cls.cells_for_lessons[lesson_counter],
-                                row + 1,
-                                cls.cells_for_lessons[end_cell],
-                                row + 1
-                            )
-                            worksheet.merge_range(
-                                lesson_range, lesson_str, current_format
-                            )
-                            lesson_counter += (lesson.theme.duration / 2)
+                        lesson_range = range_template % (
+                            cls.cells_for_lessons[lesson_counter],
+                            row + 1,
+                            cls.cells_for_lessons[end_cell],
+                            row + 1
+                        )
+                        worksheet.merge_range(
+                            lesson_range, lesson_str, current_format
+                        )
+                        lesson_counter += (lesson.theme.duration / 2)
 
-                        else:
-                            worksheet.write(
-                                row, lesson_counter + 2, lesson_str,
-                               current_format
-                            )
-                            lesson_counter += 1
                     else:
-                        if lesson.theme.self_education_hours == 2:
-                            range_template = '%s%i:%s%i'
-
-                            lesson_range = range_template % (
-                                cls.cells_for_self_eds[0],
-                                row + 1,
-                                cls.cells_for_self_eds[1],
-                                row + 1
-                            )
-
-                            worksheet.merge_range(
-                                lesson_range, lesson_str, current_format
-                            )
-                        else:
-                            worksheet.write(
-                                row, lesson_counter + 2, lesson_str,
-                                current_format
-                            )
-                            lesson_counter += 1
+                        worksheet.write(
+                            row, lesson_counter + 2, lesson_str,
+                            current_format
+                        )
+                        lesson_counter += 1
                 row += 1
             row += 1
 
