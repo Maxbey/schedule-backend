@@ -99,4 +99,4 @@ class BaseSettings(Configuration):
     # The amount of learning hours per day.
     LESSON_HOURS = 6
     SELF_EDUCATION_HOURS = 2
-    TERMS_COUNT = 5
+    TERMS_COUNT = 7
