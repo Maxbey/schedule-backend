@@ -1,271 +1,72 @@
-from datetime import timedelta
+class VariationsBuilder(object):
+    def __init__(self):
+        self.schedule_variations = []
+        self.calls = 0
 
-from django.conf import settings
-from django.core.cache import cache
+    def build_variations_for_specialty(self, specialty, term):
+        disciplines = specialty.disciplines
 
-from .models import Lesson, Troop
+        self.build_schedule_variations([], disciplines, term)
 
+        return self.schedule_variations
 
-class ScheduleBuilder(object):
-    def build(self, date, term_length):
-        for i in range(term_length):
-            troop_list = list(Troop.objects.all())
-
-            for troop in troop_list:
-                date = date - timedelta(days=date.weekday())
-                date = date + timedelta(days=troop.day)
-                hours = 0
-                themes_today = []
-
-                while hours != settings.LESSON_HOURS:
-                    disciplines = self.get_disciplines_by_priority(troop)
-
-                    lesson_dependencies = self.find_lesson_dependencies(
-                        disciplines, troop, date, hours
-                    )
-
-                    if lesson_dependencies is None:
-                        break
-
-                    theme, teachers, audiences = lesson_dependencies
-                    themes_today.append(theme)
-
-                    self.create_lesson(
-                        date, troop, hours,
-                        theme, teachers, audiences, theme.duration
-                    )
-
-                    hours += theme.duration
-
-            date = date + timedelta(weeks=1)
-
-    def create_lesson(self, date_of, troop, initial_hour,
-                      theme, teachers, audiences, delta, self_ed=False):
-        lesson = Lesson.objects.create(
-            date_of=date_of, initial_hour=initial_hour,
-            troop=troop, theme=theme, self_education=self_ed
+    def build_schedule_variations(self, current_variation, disciplines, term):
+        theme_variations = self.get_theme_variations(
+            current_variation, disciplines, term
         )
+        self.calls += 1
 
-        lesson.teachers.set(teachers)
-        lesson.audiences.set(audiences)
+        if not len(theme_variations):
+            self.schedule_variations.append(current_variation)
+            return
 
-        cache.set(
-            'current_term_load',
-            int(cache.get('current_term_load')) + delta,
-            timeout=None
-        )
+        for i in xrange(len(theme_variations)):
+            current_copy = list(current_variation)
 
-        return lesson
+            theme = theme_variations.pop()
+            current_copy.append(theme)
+            self.build_schedule_variations(current_copy, disciplines, term)
 
-    def find_lesson_dependencies(self, disciplines, troop,
-                                 date, initial_hour):
-        if disciplines[0][1] == 1:
-            return None
-
-        themes = self.get_sorted_head_themes(
-            self.fetch_disciplines_head_themes(troop, initial_hour, disciplines)
-        )
-
-        while True:
-            if not len(themes):
-                return None
-
-            theme = themes.pop(0)
-
-            lessons_in_same_time = self.get_lessons_in_same_time(
-                theme, troop, date, initial_hour
-            )
-
-            if self.is_theme_parallel(theme, lessons_in_same_time) \
-                    and len(themes) > 1:
-                continue
-
-            teachers_not_enough = False
-            audiences_not_enough = False
-
-            main_teachers = self.find_free_teachers(
-                theme.teachers_main, lessons_in_same_time
-            )
-            alternative_teachers = []
-
-            if len(main_teachers) < theme.teachers_count:
-                alternative_teachers = self.find_free_teachers(
-                    theme.teachers_alternative, lessons_in_same_time
-                )
-
-            if len(main_teachers) + len(alternative_teachers) < theme.teachers_count:
-                if len(themes) > 1:
-                    continue
-
-                teachers_not_enough = True
-
-            found_audiences = self.find_free_audiences(
-                theme, lessons_in_same_time
-            )
-
-            if len(found_audiences) < theme.audiences_count:
-                if len(themes) > 1:
-                    continue
-
-                audiences_not_enough = True
-
-            if not teachers_not_enough:
-                sorted_main_teachers = self.sort_teachers_by_priority(main_teachers)
-                sorted_alternative_teachers = self.sort_teachers_by_priority(alternative_teachers)
-
-                teachers = (sorted_main_teachers +
-                            sorted_alternative_teachers)[0:theme.teachers_count]
-            else:
-                teachers = []
-
-            if not audiences_not_enough:
-                audiences = found_audiences[0:theme.audiences_count]
-            else:
-                audiences = []
-
-            return theme, teachers, audiences
-
-    def get_sorted_head_themes(self, themes_with_priority):
-        sorted_themes = sorted(
-            themes_with_priority,
-            key=lambda theme: (-theme[0].duration, theme[1])
-        )
-
-        return [theme[0] for theme in sorted_themes]
-
-    def fetch_disciplines_head_themes(self, troop, initial_hour, disciplines):
-        themes_with_priority = []
+    def get_theme_variations(self, current_variation, disciplines,
+                             term):
+        theme_variations = []
 
         for discipline in disciplines:
-            next_theme = self.get_next_theme(discipline[0], troop)
-            if next_theme:
-                themes_with_priority.append((next_theme, discipline[1]))
+            theme_variations.append(
+                self.get_next_theme(current_variation, discipline, term)
+            )
 
         return [
-            theme for theme in themes_with_priority
-            if not (theme[0].duration + initial_hour > settings.LESSON_HOURS)
-            and self.check_prev_themes(theme[0], troop)
+            theme for theme in theme_variations
+            if theme and self.check_prev_themes(current_variation, theme)
         ]
 
-    def calc_teacher_ratio(self, teacher):
-        hours = 0
+    def is_theme_passed(self, schedule_variation, theme):
+        for passed_theme in schedule_variation:
+            if passed_theme.id == theme.id:
+                return True
 
-        for lesson in teacher.lessons.all():
-            hours += lesson.theme.duration
+        return False
 
-        return float(hours) / float(teacher.work_hours_limit)
+    def get_next_theme(self, schedule_variation, discipline, term):
+        themes = discipline.themes.filter(term=term)
 
-    def sort_teachers_by_priority(self, teachers):
-        with_ratio = []
-
-        for teacher in teachers:
-            with_ratio.append((teacher, self.calc_teacher_ratio(teacher)))
-
-        sorted_by_ratio = sorted(with_ratio, key=lambda tup: tup[1])
-
-        return [teacher[0] for teacher in sorted_by_ratio]
-
-    def get_disciplines_by_priority(self, troop):
-        with_ratio = []
-        for discipline in troop.specialty.disciplines.all():
-            hours = 0
-
-            for theme in discipline.themes.filter(term=troop.term):
-                if Lesson.objects.filter(
-                        troop=troop, theme=theme, self_education=False
-                ).exists():
-                    hours += theme.duration
-
-                if Lesson.objects.filter(
-                        troop=troop, theme=theme, self_education=True
-                ).exists():
-                    hours += theme.self_education_hours
-
-            course_length = discipline.calc_course_length(
-                troop.term, troop.specialty
-            )
-            if not course_length:
-                continue
-
-            ratio = float(hours) / float(course_length)
-
-            if ratio >= 1.0:
-                continue
-
-            with_ratio.append(
-                (discipline, ratio)
-            )
-
-        return sorted(with_ratio, key=lambda tup: tup[1])
-
-    def get_next_theme(self, discipline, troop):
-        themes = discipline.themes.filter(term=troop.term)
         sorted_by_number = sorted(
             themes, key=lambda theme: float(theme.number)
         )
 
         for theme in sorted_by_number:
-            if not Lesson.objects.filter(troop=troop, theme=theme).exists():
+            if not self.is_theme_passed(schedule_variation, theme):
                 return theme
 
-    def check_prev_themes(self, theme, troop):
+        return None
+
+    def check_prev_themes(self, schedule_variation, theme):
         if not theme.previous_themes.count():
             return True
 
         for previous_theme in theme.previous_themes.all():
-            if not Lesson.objects.filter(
-                    troop=troop, theme=previous_theme
-            ).exists():
+            if not self.is_theme_passed(schedule_variation, previous_theme):
                 return False
 
         return True
-
-    def get_lessons_in_same_time(self, theme, troop, date, initial_hour):
-        in_same_time = []
-
-        time_line = set(range(initial_hour, initial_hour + theme.duration))
-        in_same_day = Lesson.objects.filter(date_of=date).exclude(troop=troop)
-
-        for lesson in in_same_day:
-            end_hour = lesson.initial_hour + lesson.theme.duration
-            current_time_line = set(range(lesson.initial_hour + 1, end_hour))
-
-            if len(time_line & current_time_line):
-                in_same_time.append(lesson)
-
-        return in_same_time
-
-    def is_theme_parallel(self, theme, lessons_in_same_time):
-        return theme in [lesson.theme for lesson in lessons_in_same_time]
-
-    def is_audience_free(self, required_audience, lessons_in_same_time):
-        for lesson in lessons_in_same_time:
-            if required_audience in lesson.audiences.all():
-                return False
-
-        return True
-
-    def find_free_audiences(self, theme, lessons_in_same_time):
-        free = []
-
-        for audience in theme.audiences.all():
-            if self.is_audience_free(audience, lessons_in_same_time):
-                free.append(audience)
-
-        return free
-
-    def is_teacher_free(self, required_teacher, lessons_in_same_time):
-        for lesson in lessons_in_same_time:
-            if required_teacher in lesson.teachers.all():
-                return False
-
-        return True
-
-    def find_free_teachers(self, teachers, lessons_in_same_time):
-        free_teachers = []
-
-        for teacher in teachers:
-            if self.is_teacher_free(teacher, lessons_in_same_time):
-                free_teachers.append(teacher)
-
-        return free_teachers
